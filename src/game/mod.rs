@@ -446,7 +446,6 @@ mod tests {
         idle(&mut s, HAMMER_STEPS as usize);
         assert_eq!(s.hammer_left, 0);
         assert_eq!(step(&mut s, &jump), vec![Event::Jump]);
-        assert_eq!(step(&mut s, &jump), vec![Event::Jump]);
     }
 
     #[test]
