@@ -1,0 +1,25 @@
+[package]
+name = "mmdonkeykong"
+version = "0.1.0"
+edition = "2024"
+license = "Unlicense"
+description = "Donkey Kong style plathorm game"
+repository = "https://github.com/MiroM73/MMDonkeyKong"
+
+[dependencies]
+eframe = { version = "0.37", features = ["glow"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "6"
+sys-locale = "0.3"
+# Add when needed (versions as used in RusTrace / MM PortLens):
+#   egui_extras = "0.37"   regex = "1"   rfd = "0.17"   open = "5"   chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+#   sha2 = "0.11"   flate2 = "1"   crc32fast = "1"   egui_plot = "0.38"   memmap2 = "0.9"   encoding_rs = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true
+
+[build-dependencies]
+winresource = "0.1"

@@ -1,0 +1,30 @@
+# MMDonkeyKong language file – Čeština (reference / template)
+#
+# How to add a new language (no recompiling needed):
+#   1. Copy this file and name it by the language code, e.g. "fr.lang", "pl.lang", "pt-BR.lang".
+#   2. Translate the text after "=" on every line. Keep the key before "=" unchanged.
+#   3. Keep placeholders in curly braces, e.g. {error}, unchanged (their order may change).
+#   4. Put the file into "lang" next to mmdonkeykong.exe or into %APPDATA%\MMDonkeyKong\lang
+#      (Linux: ~/.config/MMDonkeyKong/lang).
+#   5. In the program choose View → Language → Reload language files, then pick the language.
+#
+language.name = Čeština
+lang.auto = Automaticky (jazyk systému)
+lang.reload = Znovu načíst jazykové soubory
+menu.file.exit = Konec
+menu.file = Soubor
+menu.view = Zobrazení
+menu.view.theme = Motiv
+menu.view.language = Jazyk
+menu.help = Nápověda
+menu.help.about = O programu
+theme.system = Systémový
+theme.light = Světlý
+theme.dark = Tmavý
+app.name = MMDonkeyKong
+app.hello = Toto je šablona aplikace. Nahraďte tento text vlastním.
+about.title = O programu
+about.text = Vytvořil Claude (Anthropic). Public domain (the Unlicense).
+about.language = Používaný jazyk: {code}
+error.save_settings = Nastavení se nepodařilo uložit: {error}
+format.date = {d}.{m}.{y}

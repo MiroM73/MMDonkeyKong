@@ -1,0 +1,30 @@
+# MMDonkeyKong language file – English (reference / template)
+#
+# How to add a new language (no recompiling needed):
+#   1. Copy this file and name it by the language code, e.g. "fr.lang", "pl.lang", "pt-BR.lang".
+#   2. Translate the text after "=" on every line. Keep the key before "=" unchanged.
+#   3. Keep placeholders in curly braces, e.g. {error}, unchanged (their order may change).
+#   4. Put the file into "lang" next to mmdonkeykong.exe or into %APPDATA%\MMDonkeyKong\lang
+#      (Linux: ~/.config/MMDonkeyKong/lang).
+#   5. In the program choose View → Language → Reload language files, then pick the language.
+#
+language.name = English
+lang.auto = Automatic (system language)
+lang.reload = Reload language files
+menu.file.exit = Exit
+menu.file = File
+menu.view = View
+menu.view.theme = Theme
+menu.view.language = Language
+menu.help = Help
+menu.help.about = About
+theme.system = System
+theme.light = Light
+theme.dark = Dark
+app.name = MMDonkeyKong
+app.hello = This is the template application. Replace this text with your own.
+about.title = About
+about.text = Created by Claude (Anthropic). Public domain (the Unlicense).
+about.language = Language in use: {code}
+error.save_settings = Could not save the settings: {error}
+format.date = {d}.{m}.{y}
