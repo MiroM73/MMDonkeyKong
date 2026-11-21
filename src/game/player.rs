@@ -21,6 +21,8 @@ pub const FALL_LIMIT: f32 = 32.0;
 pub const SNAP: f32 = 4.0;
 /// A ladder is grabbed when the player is at most this far from it horizontally.
 pub const LADDER_REACH: f32 = 4.0;
+/// A ladder can be grabbed in the air only when rising slower than this (not at take-off).
+pub const GRAB_MIN_VY: f32 = -2.0;
 /// Steps the death animation lasts before the player respawns.
 pub const DEATH_STEPS: u32 = 90;
 /// Forgiving hitbox of the player: half width and height above the feet.
@@ -194,7 +196,7 @@ impl Player {
             }
             Mode::Walking => self.walk(input, geo),
             Mode::Climbing { ladder } => self.climb(input, geo, ladder),
-            Mode::Airborne { vx, vy, top } => self.fly(geo, vx, vy, top),
+            Mode::Airborne { vx, vy, top } => self.fly(input, geo, vx, vy, top),
         }
     }
 
@@ -264,6 +266,19 @@ impl Player {
     }
 
     fn climb(&mut self, input: &Input, geo: &Geometry, ladder: usize) -> Option<PlayerEvent> {
+        if input.jump_pressed {
+            // Jump off the ladder (sideways when a direction is held).
+            let dir = i8::from(input.right) - i8::from(input.left);
+            if dir != 0 {
+                self.facing = dir;
+            }
+            self.mode = Mode::Airborne {
+                vx: f32::from(dir) * WALK_SPEED,
+                vy: JUMP_VY,
+                top: self.y,
+            };
+            return Some(PlayerEvent::Jumped);
+        }
         let l = geo.ladders[ladder];
         let dir = f32::from(i8::from(input.down) - i8::from(input.up));
         self.y += dir * CLIMB_SPEED;
@@ -279,7 +294,28 @@ impl Player {
         None
     }
 
-    fn fly(&mut self, geo: &Geometry, vx: f32, vy: f32, top: f32) -> Option<PlayerEvent> {
+    fn fly(
+        &mut self,
+        input: &Input,
+        geo: &Geometry,
+        vx: f32,
+        vy: f32,
+        top: f32,
+    ) -> Option<PlayerEvent> {
+        // Grab a ladder in reach with up / down held, except right after take-off.
+        if input.up != input.down
+            && vy > GRAB_MIN_VY
+            && let Some(i) = geo.ladders.iter().position(|l| {
+                !l.broken
+                    && (l.x - self.x).abs() <= LADDER_REACH
+                    && self.y > l.top
+                    && self.y < l.bottom
+            })
+        {
+            self.x = geo.ladders[i].x;
+            self.mode = Mode::Climbing { ladder: i };
+            return None;
+        }
         let vy = (vy + GRAVITY).min(MAX_FALL_SPEED);
         let new_x = (self.x + vx).clamp(0.0, FIELD_W as f32);
         let new_y = self.y + vy;
@@ -553,5 +589,58 @@ mod tests {
         }
         assert_eq!(ev, Some(PlayerEvent::Respawned));
         assert_eq!((p.x, p.y, p.mode), (50.0, 100.0, Mode::Walking));
+    }
+
+    fn with_ladder() -> Geometry {
+        Geometry {
+            girders: vec![
+                Girder::new(0.0, 100.0, 200.0, 100.0),
+                Girder::new(0.0, 60.0, 200.0, 60.0),
+            ],
+            ladders: vec![Ladder {
+                x: 50.0,
+                top: 60.0,
+                bottom: 100.0,
+                broken: false,
+            }],
+        }
+    }
+
+    #[test]
+    fn a_ladder_is_grabbed_in_the_air_with_up_held() {
+        let geo = with_ladder();
+        let mut p = Player::new((40.0, 100.0));
+        p.step(&held(false, false, false, false), &geo);
+        p.step(&jump_input(true), &geo);
+        let mut grabbed = false;
+        for _ in 0..40 {
+            p.step(&held(false, false, true, false), &geo);
+            if matches!(p.mode, Mode::Climbing { .. }) {
+                grabbed = true;
+                break;
+            }
+        }
+        assert!(grabbed, "{:?}", p.mode);
+        assert_eq!(p.x, 50.0);
+    }
+
+    #[test]
+    fn the_player_can_jump_off_a_ladder() {
+        let geo = with_ladder();
+        let mut p = Player::new((50.0, 100.0));
+        p.step(&held(false, false, true, false), &geo);
+        for _ in 0..10 {
+            p.step(&held(false, false, true, false), &geo);
+        }
+        assert!(matches!(p.mode, Mode::Climbing { .. }));
+        let y = p.y;
+        let ev = p.step(&jump_input(true), &geo);
+        assert_eq!(ev, Some(PlayerEvent::Jumped));
+        assert!(p.is_airborne());
+        // Not grabbed again at once although up is not held; it lands on the girder below.
+        for _ in 0..60 {
+            p.step(&Input::default(), &geo);
+        }
+        assert!(p.y >= y - 1.0 && p.is_walking(), "{:?} {}", p.mode, p.y);
     }
 }

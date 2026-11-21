@@ -60,7 +60,7 @@ browser and is unit-tested.
   girder surface nearest to `y` within `SNAP` (4 px); no girder -> falls straight down. Ladders
   (`Geometry::ladders`, `broken` ones are not grabbable): up from below / down from the top when
   within `LADDER_REACH` of the ladder x; x snaps to the ladder, at either end the player steps onto
-  the girder there. Jump: `jump_pressed` on the ground, `vx` (-1/0/1) fixed at take-off - no air
+  the girder there. A ladder in reach is also grabbed in the air with up / down held (not right after take-off, `GRAB_MIN_VY`), and `jump_pressed` on a ladder jumps off it. Jump: `jump_pressed` on the ground, `vx` (-1/0/1) fixed at take-off - no air
   control; `JUMP_VY` -2.6, `GRAVITY` 0.15 -> about 22 px high and 35 px long. Landing is *swept*: a
   girder surface between the previous and the new `y` stops the fall, so even at `MAX_FALL_SPEED`
   nothing tunnels. A landing more than `FALL_LIMIT` (32 px) below the highest point (`top`) kills
@@ -124,7 +124,7 @@ The status bar shows the key hint. Hiding the menu on touch screens is part of #
 
 A frame longer than 0.5 s (hidden browser tab, sleep, window drag) pauses the game as well.
 After a pause the first frame's time (the whole pause) is dropped (`skip_dt`). Click-to-pause on the
-whole view is a desktop convenience; #8 must replace it with a pause button, because on a touch
+whole view (a pointer click checked by hand, not `Sense::click`, which would also fire on Enter / Space of a focused view) is a desktop convenience; #8 must replace it with a pause button, because on a touch
 screen the d-pad and jump taps would toggle the pause.
 
 ## Tests

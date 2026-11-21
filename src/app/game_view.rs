@@ -137,8 +137,9 @@ impl App {
             ctx.request_repaint();
         }
 
-        let (resp, painter) = ui.allocate_painter(ui.available_size(), egui::Sense::click());
-        if resp.clicked() {
+        let (resp, painter) = ui.allocate_painter(ui.available_size(), egui::Sense::hover());
+        // A pointer click only: `Sense::click` would also react to Enter / Space on a focused view.
+        if resp.hovered() && ctx.input(|i| i.pointer.primary_clicked()) {
             let paused = self.game.is_paused();
             self.game.set_paused(!paused);
             // This frame already passed the repaint request above: ask again after an unpause.
