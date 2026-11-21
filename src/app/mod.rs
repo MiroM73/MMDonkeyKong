@@ -13,7 +13,9 @@ mod dialogs;
 mod game_view;
 mod gamepad;
 mod menu;
+mod progress;
 mod scene;
+mod screens;
 mod sprites;
 mod touch_view;
 
@@ -22,9 +24,18 @@ use std::time::Duration;
 use eframe::egui;
 
 use crate::config::Config;
-use crate::game::Difficulty;
+use crate::save::SaveData;
+use crate::storage::{self, Storage};
 use crate::{i18n, t};
 use game_view::GameSession;
+use screens::MenuState;
+
+/// What the game area shows.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::app) enum Screen {
+    Title,
+    Game,
+}
 
 /// How often changed settings are written to disk at most.
 const SAVE_INTERVAL: Duration = Duration::from_secs(2);
@@ -48,7 +59,14 @@ pub struct App {
     /// Code of the language in use, e.g. "sk".
     lang_code: String,
     show_about: bool,
+    screen: Screen,
     game: GameSession,
+    /// Saved progress and where it is kept.
+    save: SaveData,
+    storage: Box<dyn Storage>,
+    menu: MenuState,
+    /// The gamepad state of this frame (polled once per frame).
+    pad: gamepad::PadFrame,
     /// The live touches; "seen" turns the on-screen controls on in the automatic mode.
     touches: controls::Touches,
     gamepad: gamepad::Gamepad,
@@ -60,21 +78,28 @@ pub struct App {
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let (cfg, _first_run) = Config::load();
-        let cfg_difficulty = cfg.difficulty;
-        let app = Self {
+        let difficulty = cfg.difficulty;
+        let mut app = Self {
             lang_code: i18n::set_language(&cfg.language),
             cfg,
             cfg_dirty: false,
             last_save: cc.egui_ctx.input(|i| i.time),
             now: cc.egui_ctx.input(|i| i.time),
             show_about: false,
-            // Fixed seed for the first game; a restart (Enter / R) uses the frame time.
-            game: GameSession::new(1, cfg_difficulty),
+            screen: Screen::Title,
+            // Only the placeholder behind the title screen; every game starts with the frame time.
+            game: GameSession::new(1, 0, difficulty, None, 0),
+            save: SaveData::default(),
+            storage: storage::platform_storage(),
+            menu: MenuState::default(),
+            pad: gamepad::PadFrame::default(),
             touches: controls::Touches::default(),
             gamepad: gamepad::Gamepad::new(),
             sprites: sprites::Sprites::load(&cc.egui_ctx),
             status_info: None,
         };
+        app.load_save();
+        app.enter_title();
         app.apply_theme(&cc.egui_ctx);
         cc.egui_ctx.set_zoom_factor(app.cfg.ui_zoom);
         app
@@ -133,6 +158,7 @@ impl eframe::App for App {
         let ctx = ui.ctx().clone();
         self.now = ctx.input(|i| i.time);
         self.track_zoom(&ctx);
+        self.pad = self.gamepad.poll();
 
         egui::Panel::top("menu").show(ui, |ui| self.menu_bar(ui));
         egui::Panel::bottom("status").show(ui, |ui| {
@@ -148,7 +174,10 @@ impl eframe::App for App {
         });
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
-            .show(ui, |ui| self.game_ui(ui));
+            .show(ui, |ui| match self.screen {
+                Screen::Title => self.title_ui(ui),
+                Screen::Game => self.game_ui(ui),
+            });
 
         self.about_window(&ctx);
         self.save_config(false);

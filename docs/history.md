@@ -53,6 +53,13 @@ What was done when (one line per issue / release) and the open ideas of the owne
   `bonus_hammer` lines in level files for the extra hammers of the easier steps; menu Game -> Difficulty
   (`Config::difficulty`), name in the HUD. Normal is bit-identical to the old game. Balance numbers are
   the first proposal of `docs/game-design.md` and are **not tuned by playing yet**.
+- 2026-11-22: #11 Saved progress: `FileStorage` (atomic write) / `WebStorage` (`localStorage`), versioned
+  `SaveData` (`src/save.rs`: completed levels shared, per difficulty continue point, best scores, high-score
+  list), damaged / too-new save kept as `save.bak`, autosave after every completed level and when a level
+  is left through the menu, title screen with Continue / New game / difficulty, pause menu, next level with
+  lives and score carried, game over restarts the level at score 0. Owner's decisions: after the last
+  level a victory animation (confetti) and a "Play again / Quit to the title screen" question; Continue
+  only moves forward. The browser settings (`Config`) now persist in `localStorage` too.
 
 ## Open ideas
 

@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::game::Difficulty;
 
 /// The settings folder (`%APPDATA%\MMDonkeyKong`). There is none in the browser: the settings
-/// are not stored there yet (the browser storage backend comes with issue #11).
+/// (and the progress) go to `localStorage` there (`crate::storage::WebStorage`).
 pub fn config_dir() -> Option<PathBuf> {
     #[cfg(not(target_arch = "wasm32"))]
     return dirs::config_dir().map(|d| d.join("MMDonkeyKong"));
@@ -56,13 +56,20 @@ impl Default for Config {
 }
 
 impl Config {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn path() -> Option<PathBuf> {
         config_dir().map(|d| d.join("config.json"))
     }
 
     /// Loads the settings. The second value is `false` on first run (no settings file yet).
     pub fn load() -> (Self, bool) {
+        #[cfg(not(target_arch = "wasm32"))]
         let text = Self::path().and_then(|p| std::fs::read_to_string(p).ok());
+        #[cfg(target_arch = "wasm32")]
+        let text = {
+            use crate::storage::Storage;
+            crate::storage::WebStorage.load("config")
+        };
         let existed = text.is_some();
         let cfg = text.and_then(|s| Self::parse(&s)).unwrap_or_default();
         (cfg, existed)
@@ -75,6 +82,20 @@ impl Config {
     /// Writes the settings through a temporary file, so a second running instance never reads a
     /// half-written file.
     pub fn save(&self) -> std::io::Result<()> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            use crate::storage::Storage;
+            let json = serde_json::to_string_pretty(self).map_err(std::io::Error::other)?;
+            crate::storage::WebStorage
+                .save("config", &json)
+                .map_err(std::io::Error::other)
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        self.save_file()
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn save_file(&self) -> std::io::Result<()> {
         let Some(p) = Self::path() else { return Ok(()) };
         if let Some(dir) = p.parent() {
             std::fs::create_dir_all(dir)?;

@@ -6,7 +6,6 @@ use super::Level;
 const FILES: &[&str] = &[include_str!("../../levels/01-barrels.txt")];
 
 /// Number of built-in levels.
-#[allow(dead_code)] // the level select (#12)
 pub fn count() -> usize {
     FILES.len()
 }

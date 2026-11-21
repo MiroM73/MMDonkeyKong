@@ -3,6 +3,7 @@
 
 use crate::app::controls::{self, Buttons, PressLatch};
 use crate::app::scene::{self, Effect, Look, View};
+use crate::app::screens::{MenuInput, PauseChoice, VictoryChoice};
 use crate::app::touch_view;
 use crate::app::*;
 use crate::game::{
@@ -19,14 +20,18 @@ const STALL_PAUSE_SECS: f32 = 0.5;
 
 /// The running game and the state of its loop.
 pub(in crate::app) struct GameSession {
-    state: GameState,
+    pub(in crate::app) state: GameState,
+    /// Index of the level being played (0-based).
+    pub(in crate::app) level: usize,
+    /// The last level was completed and the "play again / quit" question is open.
+    pub(in crate::app) victory_menu: bool,
     stepper: FixedStep,
     paused: bool,
     /// Buttons that went down and no simulation step has consumed yet (a frame without a step
     /// must not lose them; a tap shorter than a frame still moves one step).
     latch: PressLatch,
     /// The first frame after a pause: its frame time contains the whole pause, so it is dropped.
-    skip_dt: bool,
+    pub(in crate::app) skip_dt: bool,
     /// The static background of the level (girders, ladders), built on first draw.
     background: Option<egui::TextureHandle>,
     /// Smash explosions on the field.
@@ -36,9 +41,17 @@ pub(in crate::app) struct GameSession {
 }
 
 impl GameSession {
-    pub(in crate::app) fn new(seed: u64, difficulty: Difficulty) -> Self {
+    pub(in crate::app) fn new(
+        seed: u64,
+        level: usize,
+        difficulty: Difficulty,
+        lives: Option<u32>,
+        score: u32,
+    ) -> Self {
         Self {
-            state: GameState::start(builtin_level(0), seed, difficulty, None, 0),
+            state: GameState::start(builtin_level(level), seed, difficulty, lives, score),
+            level,
+            victory_menu: false,
             stepper: FixedStep::default(),
             paused: false,
             latch: PressLatch::default(),
@@ -49,7 +62,7 @@ impl GameSession {
         }
     }
 
-    fn set_paused(&mut self, paused: bool) {
+    pub(in crate::app) fn set_paused(&mut self, paused: bool) {
         if self.paused != paused {
             self.paused = paused;
             self.stepper.reset();
@@ -155,6 +168,9 @@ impl App {
                 if event == Event::Died && self.cfg.vibration {
                     vibrate(200);
                 }
+                if event == Event::LevelComplete {
+                    self.on_level_complete();
+                }
                 if event == Event::Smash {
                     let r = self.game.state.hammer_rect();
                     self.game.effects.push(Effect {
@@ -165,17 +181,6 @@ impl App {
                 }
             }
         }
-    }
-
-    /// Starts a new game after "game over" / "level complete" (Enter / R / a tap).
-    fn restart(&mut self, ctx: &egui::Context) {
-        // Game over starts again with the score at zero; after a completed level there is
-        // no next level yet (#12), so the same one is replayed.
-        // The frame time makes every new game differ (a fixed seed would repeat the barrels).
-        self.game = GameSession::new(ctx.input(|i| (i.time * 1000.0) as u64), self.cfg.difficulty);
-        // A finished game requests no repaints, so this frame's time is the whole idle wait
-        // (it would look like a stall and pause the new game): drop it.
-        self.game.skip_dt = true;
     }
 
     /// The touch / mouse part of the input: the buttons held now and the ones that went down in
@@ -217,30 +222,28 @@ impl App {
             self.cfg.left_handed,
         );
         let (touch_held, touch_pressed) = self.pointer_buttons(&ctx, &layout);
-        let pad = self.gamepad.poll();
+        let pad = self.pad;
         // The pause button is a widget of its own: a click anywhere on the view must not pause
         // (on a touch screen every d-pad and jump tap is a pointer click too).
         let pause_resp = ui.interact(layout.pause, resp.id.with("pause"), egui::Sense::click());
         let clicked = resp.hovered() && ctx.input(|i| i.pointer.primary_clicked());
 
-        if self.game.state.status != Status::Playing
+        let ended = self.game.state.status != Status::Playing;
+        if ended
+            && !self.game.victory_menu
             && (clicked
                 || pad.start_pressed
                 || pad.pressed.jump
                 || ctx.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::R)))
         {
-            self.restart(&ctx);
+            self.after_level(&ctx);
         }
         self.handle_pause(&ctx);
-        if self.game.state.status == Status::Playing {
-            if pause_resp.clicked() || pad.start_pressed {
-                let paused = self.game.is_paused();
-                self.game.set_paused(!paused);
-                ctx.request_repaint();
-            } else if clicked && self.game.is_paused() {
-                self.game.set_paused(false);
-                ctx.request_repaint();
-            }
+        if self.game.state.status == Status::Playing && (pause_resp.clicked() || pad.start_pressed)
+        {
+            let paused = self.game.is_paused();
+            self.game.set_paused(!paused);
+            ctx.request_repaint();
         }
         if !self.game.is_paused() && self.game.state.status == Status::Playing {
             let (keys_held, keys_pressed) = read_keys(&ctx);
@@ -251,6 +254,9 @@ impl App {
                 layout.controls,
             );
             // The game animates every frame.
+            ctx.request_repaint();
+        } else if self.game.state.status == Status::Complete && self.is_final_level() {
+            // The victory animation.
             ctx.request_repaint();
         } else {
             // Idle (paused / finished): a gamepad cannot wake the app, it has to be polled, so
@@ -334,20 +340,29 @@ impl App {
             hud,
             HUD,
         );
-        let banner = match st.status {
+        let final_level = self.is_final_level();
+        let (status, score) = (st.status, st.score);
+        let banner = match status {
             Status::Playing => None,
-            Status::Complete => Some(t!("game.complete", score = st.score)),
-            Status::GameOver => Some(t!("game.over")),
+            Status::GameOver => Some((t!("game.over"), t!("game.restart"))),
+            Status::Complete if final_level => {
+                Some((t!("game.victory", score = score), t!("game.victory_hint")))
+            }
+            Status::Complete => Some((t!("game.complete", score = score), t!("game.next"))),
         };
-        if let Some(text) = banner {
+        if status == Status::Complete && final_level {
+            draw_confetti(&painter, field, self.now as f32);
+        }
+        if let Some((title, hint)) = banner
+            && !self.game.victory_menu
+        {
             painter.rect_filled(field, 0.0, egui::Color32::from_black_alpha(150));
             painter.text(
                 field.center(),
                 egui::Align2::CENTER_CENTER,
                 format!(
-                    "{text}
-{}",
-                    t!("game.restart")
+                    "{title}
+{hint}"
                 ),
                 egui::FontId::proportional(16.0 * scale / ppp / 2.0),
                 egui::Color32::WHITE,
@@ -362,16 +377,60 @@ impl App {
             self.game.is_paused(),
             pause_resp.hovered(),
         );
+        let menu_input = MenuInput::read(&ctx, &pad);
         if self.game.is_paused() {
-            painter.rect_filled(field, 0.0, egui::Color32::from_black_alpha(150));
-            painter.text(
-                field.center(),
-                egui::Align2::CENTER_CENTER,
-                t!("game.paused"),
-                egui::FontId::proportional(16.0),
-                egui::Color32::WHITE,
-            );
+            painter.rect_filled(field, 0.0, egui::Color32::from_black_alpha(190));
+            match self.pause_menu(ui, field, menu_input) {
+                Some(PauseChoice::Resume) => {
+                    self.game.set_paused(false);
+                    ctx.request_repaint();
+                }
+                Some(PauseChoice::Title) => {
+                    // Leaving a level through the menu: the progress is saved first.
+                    self.persist();
+                    self.enter_title();
+                }
+                None => {}
+            }
         }
+        if self.game.victory_menu {
+            match self.victory_menu(ui, field, menu_input) {
+                Some(VictoryChoice::PlayAgain) => self.new_game(&ctx),
+                Some(VictoryChoice::Quit) => {
+                    self.persist();
+                    self.enter_title();
+                }
+                None => {}
+            }
+        }
+    }
+}
+
+/// Confetti falling over the field after the last level (a pure function of the time).
+fn draw_confetti(painter: &egui::Painter, field: egui::Rect, t: f32) {
+    const COLORS: [egui::Color32; 5] = [
+        egui::Color32::from_rgb(255, 200, 40),
+        egui::Color32::from_rgb(240, 80, 80),
+        egui::Color32::from_rgb(80, 200, 120),
+        egui::Color32::from_rgb(90, 160, 255),
+        egui::Color32::from_rgb(230, 120, 220),
+    ];
+    for i in 0..60u32 {
+        let f = i as f32;
+        let x = (f * 0.618_034).fract();
+        let speed = 0.12 + 0.18 * (f * 0.37).fract();
+        let y = (f * 0.381_966 + t * speed).fract();
+        let sway = (t * 2.0 + f).sin() * 0.01;
+        let pos = egui::pos2(
+            field.left() + (x + sway) * field.width(),
+            field.top() + y * field.height(),
+        );
+        let size = field.width() / 70.0 * (1.0 + (f * 0.71).fract());
+        painter.rect_filled(
+            egui::Rect::from_center_size(pos, egui::vec2(size, size * 0.6)),
+            0.0,
+            COLORS[(i % 5) as usize],
+        );
     }
 }
 

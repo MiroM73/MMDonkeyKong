@@ -5,8 +5,7 @@
 )]
 
 mod app;
-// The audio / storage traits are not used by the front end yet (issues #11, #16); each allow is
-// removed when its module is wired in.
+// The audio trait is not used by the front end yet (issue #16); the allow is removed then.
 #[allow(dead_code)]
 mod audio;
 mod config;
@@ -17,7 +16,7 @@ mod i18n;
 mod icon;
 #[cfg(not(target_arch = "wasm32"))]
 mod native;
-#[allow(dead_code)]
+mod save;
 mod storage;
 
 /// Desktop entry point.

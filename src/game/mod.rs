@@ -17,7 +17,7 @@ pub use barrel::{Barrel, BarrelMode};
 pub use difficulty::{Difficulty, Params};
 pub use input::Input;
 pub use level::Level;
-pub use levels::builtin as builtin_level;
+pub use levels::{builtin as builtin_level, count as level_count};
 pub use player::{Geometry, Girder, Ladder, Mode, Player, PlayerEvent};
 pub use rng::Rng;
 pub use timestep::{FixedStep, STEP_HZ};

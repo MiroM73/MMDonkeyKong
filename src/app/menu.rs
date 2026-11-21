@@ -1,6 +1,7 @@
 //! The menu bar: File, View (theme, language), Help.
 
 use crate::app::*;
+use crate::game::Difficulty;
 
 impl App {
     pub(in crate::app) fn menu_bar(&mut self, ui: &mut egui::Ui) {

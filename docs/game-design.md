@@ -96,6 +96,8 @@ difficulty.
 - The **level-select screen** lists all levels the player has already **completed plus the next one**;
   locked levels are shown greyed out. A level can be replayed at any time; replaying does not lose
   the progress of the highest level.
+- *Continue* only ever moves forward (replaying an earlier level never lowers it); after the last level
+  the game is finished: victory animation, then the question "Play again / Quit to the title screen".
 - *Continue* resumes at the last saved level start (mid-level saving is not planned: the simulation
   is real time, so "save at the start of a level" is the checkpoint).
 - Storage is behind one small trait (`Storage`): a JSON file in `%APPDATA%\MMDonkeyKong\` on

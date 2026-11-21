@@ -73,9 +73,8 @@ browser and is unit-tested.
   (`STEP_HZ`) steps to run; the remainder carries over, a stall is capped at 0.1 s (the excess is
   dropped), NaN / negative `dt` is ignored.
 - `Event` is what the front end turns into sound / effects. `src/audio.rs` has the `Audio` trait
-  (`NullAudio`), `src/storage.rs` the `Storage` trait (`NullStorage`, `MemoryStorage`); the real
-  backends come with #16 and #11. Until the front end uses them, their `mod` lines in `main.rs`
-  carry `#[allow(dead_code)]` with that reason.
+  (`NullAudio`; its `mod` line in `main.rs` carries `#[allow(dead_code)]` until #16 uses it),
+  `src/storage.rs` the `Storage` trait (see Saved progress).
 
 ### Level format (`level.rs`, `levels.rs`, `levels/*.txt`, #6)
 
@@ -119,8 +118,39 @@ box stretched 12 px in front of the player are smashed (+300). A jump whose feet
 above a barrel (within 6 px horizontally) scores +100 once per barrel. The time bonus loses
 `bonus_drop` every `bonus_every` and is added to the score at the goal. One extra life when the
 score reaches `extra_life`. Lives: 3; losing the last one ends the game after the death animation
-(`GameOver`). The view restarts with Enter / R (a game over resets the score; after a completed
-level the same level is replayed until the level select, #12).
+(`GameOver`). What happens after the level ends is in Saved progress.
+
+## Saved progress (`src/save.rs`, `src/storage.rs`, `src/app/progress.rs`, #11)
+
+`Storage` (`load(key)`, `save(key, value) -> Result`) has `FileStorage::new(dir)` (desktop: key `save`
+-> `%APPDATA%\MMDonkeyKong\save.json`, key `save.bak` -> `save.json.bak`; written to a temporary file
+and renamed, **no** direct-write fallback, so a failed write leaves the old file untouched),
+`WebStorage` (wasm: `localStorage["mmdonkeykong.<key>"]`), `NullStorage` and (tests) `MemoryStorage`;
+`platform_storage()` picks one. `Config` goes through `WebStorage` (key `config`) in the browser too.
+The tests of `FileStorage` use a folder under the system temp folder, never `%APPDATA%`.
+
+`SaveData` (pure, serde, `#[serde(default)]`): `version` (1; a file without it is version 0 and is
+migrated by stamping the version, a newer one is `TooNew`), `completed` (level indices completed on
+*any* difficulty = unlocked for all) and per `Difficulty` a `Progress`: `resume` (level, lives, score
+at the **start** of that level), `best` (level -> best score, only levels completed on that
+difficulty), `high_scores`. `SaveData::load(storage, level_count)` never fails: a missing file gives
+an empty save; garbage or a too-new version is copied to `save.bak` and the game starts fresh (the
+status bar says so); impossible values (resume level out of range, zero lives) are repaired by
+`sanitize`. Rules (all unit-tested): `new_game` sets the resume to level 1 with full lives;
+`complete_level` unlocks, keeps the best score and moves the resume **forward only** (replaying an
+earlier level never lowers it; after the last level it is cleared); `game_over` restarts the resume
+level with full lives and zero score; `is_playable(completed, level, count)` = level 0, a completed
+level, or the one after a completed level.
+
+Front end (`progress.rs`, `screens.rs`): `Screen::Title` / `Screen::Game`. The title screen has
+Continue (only with a resume point of the selected difficulty), New game (asks a second press when a
+saved game would be discarded) and the difficulty; keyboard / gamepad / pointer share `MenuInput`
+and `move_cursor` (list or grid). `begin_level` starts a `GameSession` (level, difficulty, carried
+lives and score). `Event::LevelComplete` -> `on_level_complete` (unlock + autosave);
+Enter / tap then goes to the next level with lives and score carried; game over restarts the same
+level with zero score; after the **last** level the confetti runs, Enter opens the question
+"Play again / Quit to the title screen". The pause screen is a menu (Resume, Back to the title screen =
+autosave and leave). A failing storage is reported in the status bar, the game goes on.
 
 ## Game view (`src/app/game_view.rs`)
 
