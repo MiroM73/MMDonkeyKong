@@ -129,6 +129,8 @@ pub(in crate::app) struct MenuState {
     pub confirm_new: bool,
     pub pause: usize,
     pub victory: usize,
+    /// The cursor of the level select.
+    pub level: usize,
 }
 
 /// The items of the title screen, top to bottom.
@@ -136,12 +138,14 @@ pub(in crate::app) struct MenuState {
 enum TitleItem {
     Continue,
     NewGame,
+    LevelSelect,
     Difficulty,
 }
 
-const TITLE_ITEMS: [TitleItem; 3] = [
+const TITLE_ITEMS: [TitleItem; 4] = [
     TitleItem::Continue,
     TitleItem::NewGame,
+    TitleItem::LevelSelect,
     TitleItem::Difficulty,
 ];
 
@@ -192,6 +196,7 @@ impl App {
                 TitleItem::Continue => (t!("title.continue"), has_resume),
                 TitleItem::NewGame if self.menu.confirm_new => (t!("title.new_game_confirm"), true),
                 TitleItem::NewGame => (t!("title.new_game"), true),
+                TitleItem::LevelSelect => (t!("title.levels"), true),
                 TitleItem::Difficulty => (t!("title.difficulty", name = t!(diff.key())), true),
             };
             let resp = menu_item(&mut child, &text, size, self.menu.title == i, enabled);
@@ -218,6 +223,7 @@ impl App {
                     self.new_game(&ctx);
                 }
             }
+            Some(TitleItem::LevelSelect) => self.enter_level_select(),
             Some(TitleItem::Difficulty) => self.step_difficulty(1),
             None => {}
         }
@@ -252,6 +258,7 @@ impl App {
     ) -> Option<PauseChoice> {
         let items = [
             (t!("pause.resume"), PauseChoice::Resume),
+            (t!("pause.levels"), PauseChoice::LevelSelect),
             (t!("pause.title"), PauseChoice::Title),
         ];
         let size = egui::vec2(ITEM_W.min(field.width() - 16.0), ITEM_H);
@@ -335,6 +342,7 @@ impl App {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::app) enum PauseChoice {
     Resume,
+    LevelSelect,
     Title,
 }
 

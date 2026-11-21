@@ -385,6 +385,10 @@ impl App {
                     self.game.set_paused(false);
                     ctx.request_repaint();
                 }
+                Some(PauseChoice::LevelSelect) => {
+                    self.persist();
+                    self.enter_level_select();
+                }
                 Some(PauseChoice::Title) => {
                     // Leaving a level through the menu: the progress is saved first.
                     self.persist();

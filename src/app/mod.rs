@@ -12,6 +12,7 @@ mod controls;
 mod dialogs;
 mod game_view;
 mod gamepad;
+mod level_select;
 mod menu;
 mod progress;
 mod scene;
@@ -34,6 +35,7 @@ use screens::MenuState;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::app) enum Screen {
     Title,
+    LevelSelect,
     Game,
 }
 
@@ -65,6 +67,8 @@ pub struct App {
     save: SaveData,
     storage: Box<dyn Storage>,
     menu: MenuState,
+    /// The names of the levels (for the level select).
+    level_names: Vec<String>,
     /// The gamepad state of this frame (polled once per frame).
     pad: gamepad::PadFrame,
     /// The live touches; "seen" turns the on-screen controls on in the automatic mode.
@@ -92,6 +96,9 @@ impl App {
             save: SaveData::default(),
             storage: storage::platform_storage(),
             menu: MenuState::default(),
+            level_names: (0..crate::game::level_count())
+                .map(|i| crate::game::builtin_level(i).name)
+                .collect(),
             pad: gamepad::PadFrame::default(),
             touches: controls::Touches::default(),
             gamepad: gamepad::Gamepad::new(),
@@ -176,6 +183,7 @@ impl eframe::App for App {
             .frame(egui::Frame::NONE)
             .show(ui, |ui| match self.screen {
                 Screen::Title => self.title_ui(ui),
+                Screen::LevelSelect => self.level_select_ui(ui),
                 Screen::Game => self.game_ui(ui),
             });
 

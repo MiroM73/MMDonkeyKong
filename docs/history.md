@@ -60,6 +60,11 @@ What was done when (one line per issue / release) and the open ideas of the owne
   lives and score carried, game over restarts the level at score 0. Owner's decisions: after the last
   level a victory animation (confetti) and a "Play again / Quit to the title screen" question; Continue
   only moves forward. The browser settings (`Config`) now persist in `localStorage` too.
+- 2026-11-22: #12 Level select: grid of tiles (number, name, best score of the selected difficulty, one
+  medal per difficulty), completed levels and the next one playable, later ones greyed out with a padlock;
+  from the title screen and the pause menu; keyboard / gamepad cursor, large tiles for touch, scrolling
+  for many levels. Replaying never lowers the progress. Checked with temporary extra levels (only one level
+  exists until #14).
 
 ## Open ideas
 

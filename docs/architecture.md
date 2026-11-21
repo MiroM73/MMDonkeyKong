@@ -149,8 +149,21 @@ and `move_cursor` (list or grid). `begin_level` starts a `GameSession` (level, d
 lives and score). `Event::LevelComplete` -> `on_level_complete` (unlock + autosave);
 Enter / tap then goes to the next level with lives and score carried; game over restarts the same
 level with zero score; after the **last** level the confetti runs, Enter opens the question
-"Play again / Quit to the title screen". The pause screen is a menu (Resume, Back to the title screen =
+"Play again / Quit to the title screen". The pause screen is a menu (Resume, Level select, Back to the title screen =
 autosave and leave). A failing storage is reported in the status bar, the game goes on.
+
+### Level select (`src/app/level_select.rs`, #12)
+
+`Screen::LevelSelect`, reached from the title screen and from the pause menu (which autosaves
+first). A grid of tiles (132 x 116 points, 12 apart; `grid_cols` fits as many per row as the width
+allows, a vertical `ScrollArea` holds the rows, the cursor tile is scrolled into view). `tile_info`
+(pure, tested) gives each tile its `TileState` - `Locked` (not `SaveData::is_playable`), `Open`,
+`Done` (completed on any difficulty) - the best score on the **selected** difficulty and one medal per
+difficulty (filled when that difficulty has a best score for the level). Locked tiles are greyed with
+a padlock and cannot be selected; the cursor (`MenuInput` + `move_cursor` with the column count),
+a click / tap or Enter / A starts the level with the full lives and no score (`begin_level`) - a
+replay never lowers the progress (`complete_level` only moves Continue forward). Esc / Start / the
+Back button return to the title screen. Level names are read once at start-up (`level_names`).
 
 ## Game view (`src/app/game_view.rs`)
 

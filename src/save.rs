@@ -66,7 +66,6 @@ impl Default for SaveData {
     }
 }
 
-#[allow(dead_code)] // the level select (#12)
 /// Is level `level` (0-based) of `count` levels playable? The first one always, the completed
 /// ones and the next one after a completed one.
 pub fn is_playable(completed: &BTreeSet<usize>, level: usize, count: usize) -> bool {
@@ -94,12 +93,10 @@ impl SaveData {
         self.progress(d).and_then(|p| p.resume)
     }
 
-    #[allow(dead_code)] // the level select (#12)
     pub fn best(&self, d: Difficulty, level: usize) -> Option<u32> {
         self.progress(d).and_then(|p| p.best.get(&level).copied())
     }
 
-    #[allow(dead_code)] // the level select (#12)
     pub fn is_playable(&self, level: usize, count: usize) -> bool {
         is_playable(&self.completed, level, count)
     }

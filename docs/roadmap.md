@@ -55,7 +55,7 @@ and browser problems are found early, not at the end.
 |-------|------|--------|
 | 10 | Five difficulty steps (`Difficulty` table: speed / spawn / lives / score) | done |
 | 11 | `Storage` backends (file, localStorage), versioned save, autosave after each level, Continue | done |
-| 12 | Level-select screen: completed levels + the next one, locked levels greyed out | open |
+| 12 | Level-select screen: completed levels + the next one, locked levels greyed out | done |
 | 13 | High scores per difficulty | open |
 | 21 | Save export / import as text (merge rule), moving progress between phone and PC | open |
 
