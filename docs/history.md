@@ -31,6 +31,8 @@ What was done when (one line per issue / release) and the open ideas of the owne
   egui instead of `Instant`.
 - 2026-11-21: #4 GitHub Pages: `pages.yml` deploys the Trunk build on every push to `master`,
   CI job `web` (clippy wasm32 + Trunk build), README play link and badge.
+- 2026-11-21: #5 Player physics in `src/game/player.rs`: slopes, ladders, fixed-arc jump, swept landing,
+  fall limit, forgiving hitbox, death and respawn; the view draws a demo level with the player.
 
 ## Open ideas
 

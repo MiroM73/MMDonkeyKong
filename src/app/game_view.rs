@@ -2,12 +2,15 @@
 //! input, draws the playfield scaled to the available area, handles pause.
 
 use crate::app::*;
-use crate::game::{self, FIELD_H, FIELD_W, FixedStep, GameState, Input, MARKER_SIZE};
+use crate::game::{self, FIELD_H, FIELD_W, FixedStep, GameState, Input};
 
 const LETTERBOX: egui::Color32 = egui::Color32::from_rgb(8, 8, 14);
 const FIELD_BG: egui::Color32 = egui::Color32::from_rgb(18, 20, 48);
 const FIELD_BORDER: egui::Color32 = egui::Color32::from_rgb(200, 60, 60);
 const MARKER: egui::Color32 = egui::Color32::from_rgb(250, 210, 60);
+const MARKER_DEAD: egui::Color32 = egui::Color32::from_rgb(220, 60, 60);
+const GIRDER: egui::Color32 = egui::Color32::from_rgb(200, 70, 90);
+const LADDER: egui::Color32 = egui::Color32::from_rgb(90, 200, 230);
 /// A frame that took longer than this (hidden browser tab, computer sleep, window drag) pauses
 /// the game instead of silently continuing.
 const STALL_PAUSE_SECS: f32 = 0.5;
@@ -144,7 +147,7 @@ impl App {
             snap(resp.rect.center().y - size.y / 2.0),
         );
         let field = egui::Rect::from_min_size(origin, size);
-        let to_screen = |x: i32, y: i32| origin + egui::vec2(x as f32, y as f32) * scale / ppp;
+        let to_screen = |x: f32, y: f32| origin + egui::vec2(x, y) * scale / ppp;
 
         painter.rect_filled(field, 0.0, FIELD_BG);
         painter.rect_stroke(
@@ -153,14 +156,31 @@ impl App {
             egui::Stroke::new(scale / ppp, FIELD_BORDER),
             egui::StrokeKind::Inside,
         );
+        // Placeholder drawing until the pixel-art renderer (#7).
         let st = &self.game.state;
+        let line = scale / ppp;
+        for g in &st.geometry.girders {
+            painter.line_segment(
+                [to_screen(g.x0, g.y0), to_screen(g.x1, g.y1)],
+                egui::Stroke::new(line * 2.0, GIRDER),
+            );
+        }
+        for l in &st.geometry.ladders {
+            let c = if l.broken { GIRDER } else { LADDER };
+            painter.line_segment(
+                [to_screen(l.x, l.top), to_screen(l.x, l.bottom)],
+                egui::Stroke::new(line * 2.0, c),
+            );
+        }
+        let hb = st.player.hitbox();
         painter.rect_filled(
-            egui::Rect::from_min_max(
-                to_screen(st.x, st.y),
-                to_screen(st.x + MARKER_SIZE, st.y + MARKER_SIZE),
-            ),
+            egui::Rect::from_min_max(to_screen(hb.x0, hb.y0), to_screen(hb.x1, hb.y1)),
             0.0,
-            MARKER,
+            if st.player.is_dead() {
+                MARKER_DEAD
+            } else {
+                MARKER
+            },
         );
 
         if self.game.is_paused() {

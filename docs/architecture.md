@@ -51,8 +51,21 @@ Pure simulation: no egui, no I/O, no wall-clock time, so it runs unchanged nativ
 browser and is unit-tested.
 
 - `GameState` + `step(&mut state, &Input) -> Vec<Event>`: one fixed step. `Input` holds the held
-  directions, `jump_held` and the edge `jump_pressed`. The state is a placeholder marker until
-  the player physics (#5) and the levels (#6) land.
+  directions, `jump_held` and the edge `jump_pressed`. `GameState` holds a `Geometry` and the
+  `Player`; the geometry is `demo_geometry()` (a test level drawn as lines) until the levels (#6).
+- `Player` (`player.rs`, #5): `step(&Input, &Geometry) -> Option<PlayerEvent>`. `x` / `y` = middle of
+  the feet, y down, f32 (IEEE basic ops only, so deterministic). `Mode`: `Walking`, `Climbing`,
+  `Airborne {vx, vy, top}`, `Dead {left}`. Walking: x moves 1 px / step and the feet snap to the
+  girder surface nearest to `y` within `SNAP` (4 px); no girder -> falls straight down. Ladders
+  (`Geometry::ladders`, `broken` ones are not grabbable): up from below / down from the top when
+  within `LADDER_REACH` of the ladder x; x snaps to the ladder, at either end the player steps onto
+  the girder there. Jump: `jump_pressed` on the ground, `vx` (-1/0/1) fixed at take-off - no air
+  control; `JUMP_VY` -2.6, `GRAVITY` 0.15 -> about 22 px high and 35 px long. Landing is *swept*: a
+  girder surface between the previous and the new `y` stops the fall, so even at `MAX_FALL_SPEED`
+  nothing tunnels. A landing more than `FALL_LIMIT` (32 px) below the highest point (`top`) kills
+  (`FellToDeath`); so does leaving the field. Hitbox: 6 x 12 px (`hitbox()`), narrower than the
+  sprite; `hit_by(Rect)` is for hazards, `kill()` for outside kills. Death lasts `DEATH_STEPS`, then
+  the player respawns at its spawn point (`Respawned`); lives are counted by the game (later).
 - `Rng` (`rng.rs`): own xorshift64*, seeded; the same seed and inputs always give the same state
   (test `same_seed_and_inputs_give_the_same_state`).
 - `FixedStep` (`timestep.rs`): the accumulator. `advance(dt)` returns how many 60 Hz
