@@ -17,7 +17,7 @@ An original single-player arcade platformer in the spirit of the classic 1981 ap
 
 ## At a glance
 
-- five difficulty steps, progress saved after every level, replay any completed level (gamepad planned)
+- five difficulty steps, progress saved after every level, replay any completed level (gamepad)
 - keyboard, touch (phone / tablet) and gamepad controls (gamepad planned)
 - playable in the browser and installable for offline use (gamepad planned), Windows exe (planned)
 - light / dark / system theme, UI zoom (Ctrl + plus / minus)

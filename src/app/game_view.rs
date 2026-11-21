@@ -214,6 +214,7 @@ impl App {
             self.cfg.left_handed,
         );
         let (touch_held, touch_pressed) = self.pointer_buttons(&ctx, &layout);
+        let pad = self.gamepad.poll();
         // The pause button is a widget of its own: a click anywhere on the view must not pause
         // (on a touch screen every d-pad and jump tap is a pointer click too).
         let pause_resp = ui.interact(layout.pause, resp.id.with("pause"), egui::Sense::click());
@@ -221,13 +222,15 @@ impl App {
 
         if self.game.state.status != Status::Playing
             && (clicked
+                || pad.start_pressed
+                || pad.pressed.jump
                 || ctx.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::R)))
         {
             self.restart(&ctx);
         }
         self.handle_pause(&ctx);
         if self.game.state.status == Status::Playing {
-            if pause_resp.clicked() {
+            if pause_resp.clicked() || pad.start_pressed {
                 let paused = self.game.is_paused();
                 self.game.set_paused(!paused);
                 ctx.request_repaint();
@@ -240,11 +243,16 @@ impl App {
             let (keys_held, keys_pressed) = read_keys(&ctx);
             self.run_steps(
                 &ctx,
-                keys_held.or(touch_held),
-                keys_pressed.or(touch_pressed),
+                keys_held.or(touch_held).or(pad.held),
+                keys_pressed.or(touch_pressed).or(pad.pressed),
             );
-            // The game animates every frame; a paused game requests nothing (idle CPU).
+            // The game animates every frame.
             ctx.request_repaint();
+        } else {
+            // Idle (paused / finished): a gamepad cannot wake the app, it has to be polled, so
+            // Start works. Quick while a pad is connected, a slow check for one being plugged in.
+            let wait = if pad.connected { 100 } else { 1000 };
+            ctx.request_repaint_after(std::time::Duration::from_millis(wait));
         }
 
         painter.rect_filled(resp.rect, 0.0, LETTERBOX);

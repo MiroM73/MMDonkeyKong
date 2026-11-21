@@ -11,6 +11,7 @@
 mod controls;
 mod dialogs;
 mod game_view;
+mod gamepad;
 mod menu;
 mod scene;
 mod sprites;
@@ -49,6 +50,7 @@ pub struct App {
     game: GameSession,
     /// The live touches; "seen" turns the on-screen controls on in the automatic mode.
     touches: controls::Touches,
+    gamepad: gamepad::Gamepad,
     sprites: sprites::Sprites,
     /// A message for the status bar (text, since when); cleared after a few seconds.
     status_info: Option<(String, f64)>,
@@ -67,6 +69,7 @@ impl App {
             // Fixed seed for the first game; a restart (Enter / R) uses the frame time.
             game: GameSession::new(1),
             touches: controls::Touches::default(),
+            gamepad: gamepad::Gamepad::new(),
             sprites: sprites::Sprites::load(&cc.egui_ctx),
             status_info: None,
         };

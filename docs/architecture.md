@@ -151,6 +151,17 @@ edges. `index.html` already disables page scroll, pull-to-refresh and (double-ta
 not a pause click any more (every d-pad tap is a pointer click too). While paused a tap anywhere
 resumes; after game over / level complete a tap anywhere restarts (touch has no Enter / R).
 
+**Gamepad** (`src/app/gamepad.rs`, #9). Native: `gilrs` (`Gilrs::new()` failing means no gamepad, quietly);
+browser: the Gamepad API through `web-sys` with the standard mapping (buttons 0 = A, 9 = Start,
+12 - 15 = d-pad, axes 0 / 1 = left stick). Both are poll-only: `Gamepad::poll` runs once per frame and
+returns a `PadFrame` (held, pressed edges, Start edge, connected) built by pure functions (`buttons_of`:
+d-pad or stick with a 0.5 dead zone, A = jump; `frame_of`: edges against the previous poll, several pads
+are combined). It feeds the same `PressLatch` as the keyboard and touch. Start pauses / resumes and, after
+the game ended, Start or A restarts. Because a pad cannot wake an idle app, a paused / finished game
+requests a repaint after 100 ms while a pad is connected and after 1 s otherwise (to notice a newly
+plugged pad; the browser lists a pad only after its first button press): a deliberate small idle cost.
+Linux builds need `libudev-dev` for `gilrs` (installed in the CI job).
+
 **Vibration.** `Event::Died` calls `navigator.vibrate(200)` in the browser (`web-sys`
 `Navigator`, wasm only) when `Config::vibration` is on; nowhere else.
 

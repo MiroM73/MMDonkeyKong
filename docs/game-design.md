@@ -109,7 +109,7 @@ difficulty.
 |--------|------|-------|------|--------|-------|
 | Keyboard | ← → / A D | ↑ ↓ / W S | Space | automatic on pickup | Esc / P |
 | Touch (phone, tablet) | on-screen d-pad (left side) | d-pad up / down | big button (right side) | automatic | pause icon |
-| Gamepad (later) | stick / d-pad | stick / d-pad | A | automatic | Start |
+| Gamepad | stick / d-pad | stick / d-pad | A | automatic | Start |
 
 The touch controls are drawn over / beside the playfield, sized for thumbs, multi-touch (move and
 jump at the same time), and shown only when a touch screen is detected (or forced in the settings).

@@ -51,6 +51,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # gilrs (gamepad) reads the devices through libudev.
+      - name: Install libudev
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+
       - name: Update Rust toolchain
         run: rustup update stable && rustup default stable && rustup component add clippy
 

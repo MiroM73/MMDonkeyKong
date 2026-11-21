@@ -45,6 +45,8 @@ What was done when (one line per issue / release) and the open ideas of the owne
   moves), multi-touch on-screen d-pad + jump button (`controls.rs`, `touch_view.rs`), portrait / landscape
   layout, pause button instead of click-to-pause, tap to resume / restart, View -> Controls (mode, size,
   left-handed, vibration), vibration on death in the browser.
+- 2026-11-21: #9 Gamepad: `gilrs` on the desktop, the Gamepad API in the browser; stick / d-pad move and
+  climb, A jumps, Start pauses / restarts; idle polling while a pad is connected; CI installs libudev-dev.
 
 ## Open ideas
 
