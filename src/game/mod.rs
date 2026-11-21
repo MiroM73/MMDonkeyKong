@@ -168,12 +168,12 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
     }
     state.tick += 1;
 
-    // With the hammer in the hand the player cannot climb (the original cannot jump either, but
-    // jumping with the hammer is allowed here).
+    // With the hammer in the hand the player can neither climb nor jump (as in the original).
     let mut input = *input;
     if state.hammer_left > 0 {
         input.up = false;
         input.down = false;
+        input.jump_pressed = false;
     }
     match state.player.step(&input, &state.level.geometry) {
         Some(PlayerEvent::Jumped) => events.push(Event::Jump),
@@ -428,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn the_hammer_is_picked_up_runs_out_and_still_allows_jumping() {
+    fn the_hammer_is_picked_up_runs_out_and_blocks_jumping() {
         let mut s = state(1);
         s.barrel_in = u32::MAX;
         let (hx, hy) = (s.player.x, s.player.y);
@@ -441,9 +441,11 @@ mod tests {
             jump_pressed: true,
             ..Input::default()
         };
-        assert_eq!(step(&mut s, &jump), vec![Event::Jump]); // jumping works with the hammer
+        assert!(step(&mut s, &jump).is_empty()); // no jumping with the hammer
+        assert_eq!(s.player.mode, Mode::Walking);
         idle(&mut s, HAMMER_STEPS as usize);
         assert_eq!(s.hammer_left, 0);
+        assert_eq!(step(&mut s, &jump), vec![Event::Jump]);
         assert_eq!(step(&mut s, &jump), vec![Event::Jump]);
     }
 
