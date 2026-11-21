@@ -21,6 +21,8 @@ What was done when (one line per issue / release) and the open ideas of the owne
   cloud sync, deploy on every push, Windows-only exe. Issues 21-25 added to the roadmap.
 - 2026-11-21: GitHub repository `MiroM73/MMDonkeyKong` created (public, `origin` added, nothing
   pushed yet) and issues #1-#25 created from `docs/issues/`.
+- 2026-11-21: #2 game core skeleton: `src/game/` (state, `step`, `Input`, `Event`, seeded `Rng`,
+  `FixedStep`), `Storage` and `Audio` traits with null implementations.
 
 ## Open ideas
 

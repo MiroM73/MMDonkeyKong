@@ -29,7 +29,7 @@ and browser problems are found early, not at the end.
 | Issue | What | Status |
 |-------|------|--------|
 | 01 | Turn the template into a game window: playfield with logical resolution, scaling, fixed-step loop, pause | open |
-| 02 | Platform-independent `game` module skeleton + `Input` / `Storage` / `Audio` traits | open |
+| 02 | Platform-independent `game` module skeleton + `Input` / `Storage` / `Audio` traits | done |
 
 ## Phase 2 – browser build (early, so every later step is tested there too)
 | Issue | What | Status |

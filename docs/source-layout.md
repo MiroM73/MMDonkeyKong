@@ -10,7 +10,9 @@ The files of `src/` and the conventions of the code.
 | `src/app/mod.rs` | the `App` struct, helper types / consts, `App::new`, the frame loop (`eframe::App::ui`) |
 | `src/app/menu.rs` | menu bar: File, View (theme, language), Help |
 | `src/app/dialogs/` | one file per window (`about.rs`) |
-| `src/game/` | _(planned)_ platform-independent game: simulation, levels, difficulty, progress |
+| `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `input.rs`, `rng.rs`, `timestep.rs` (fixed step); later levels, difficulty, progress |
+| `src/storage.rs` | `Storage` trait + `NullStorage` / `MemoryStorage` (real backends: #11) |
+| `src/audio.rs` | `Audio` trait + `NullAudio` (real backends: #16) |
 | `levels/*.txt` | _(planned)_ level data, embedded with `include_str!` |
 | `src/config.rs` | `Config` (serde defaults), load / atomic save |
 | `src/i18n.rs` | `t!()` macro, language files, built-in languages, completeness test |

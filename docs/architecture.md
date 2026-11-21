@@ -26,12 +26,26 @@ Why: with wgpu the AMD driver kept one CPU core busy while idle (RusTrace issue 
 `config.rs`: `Config` with `#[serde(default)]`, written through a temporary file (atomic rename).
 The app marks `cfg_dirty` and `save_config` writes at most every 2 s and on exit.
 
-## Game architecture (planned, see `docs/game-design.md`, `docs/platforms.md`)
+## Game core (`src/game/`)
 
-`src/game/` = pure simulation (fixed 60 Hz step, `Input` in, `Event`s out, seeded RNG, levels
-parsed from `levels/*.txt`), `src/app/` = egui front end (painter drawing, input collection incl.
-touch, menus), `Storage` / `Audio` traits with native and web backends. This section is rewritten
-as the issues of `docs/roadmap.md` land.
+Pure simulation: no egui, no I/O, no wall-clock time, so it runs unchanged natively and in the
+browser and is unit-tested.
+
+- `GameState` + `step(&mut state, &Input) -> Vec<Event>`: one fixed step. `Input` holds the held
+  directions, `jump_held` and the edge `jump_pressed`. The state is a placeholder marker until
+  the player physics (#5) and the levels (#6) land.
+- `Rng` (`rng.rs`): own xorshift64*, seeded; the same seed and inputs always give the same state
+  (test `same_seed_and_inputs_give_the_same_state`).
+- `FixedStep` (`timestep.rs`): the accumulator. `advance(dt)` returns how many 60 Hz
+  (`STEP_HZ`) steps to run; the remainder carries over, a stall is capped at 0.1 s (the excess is
+  dropped), NaN / negative `dt` is ignored.
+- `Event` is what the front end turns into sound / effects. `src/audio.rs` has the `Audio` trait
+  (`NullAudio`), `src/storage.rs` the `Storage` trait (`NullStorage`, `MemoryStorage`); the real
+  backends come with #16 and #11. Until the front end uses them, their `mod` lines in `main.rs`
+  carry `#[allow(dead_code)]` with that reason.
+
+Planned (see `docs/game-design.md`, `docs/platforms.md`): levels parsed from `levels/*.txt`,
+`src/app/` as the egui front end (painter drawing, input collection incl. touch).
 
 ## Tests
 
