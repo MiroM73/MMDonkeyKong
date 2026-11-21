@@ -19,6 +19,8 @@ What was done when (one line per issue / release) and the open ideas of the owne
 - 2026-11-21: owner answered the design questions (recorded in `docs/game-design.md`): saves per
   difficulty with shared unlocking, local records, level generator, save export / import, optional
   cloud sync, deploy on every push, Windows-only exe. Issues 21-25 added to the roadmap.
+- 2026-11-21: GitHub repository `MiroM73/MMDonkeyKong` created (public, `origin` added, nothing
+  pushed yet) and issues #1-#25 created from `docs/issues/`.
 
 ## Open ideas
 

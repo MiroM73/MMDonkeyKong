@@ -12,8 +12,9 @@ tests, check in the running program, README / `docs/architecture.md` / `docs/his
 commit with `Closes #N` (or `Part of #N`). Nothing is pushed or released without asking.
 
 What the game is: `docs/game-design.md`. How it is built and published: `docs/platforms.md`.
-The issue drafts are in `docs/issues/` (`scripts\create-issues.ps1`); numbers below are the draft
-numbers (`NN-*.md`) until the issues exist on GitHub, then the GitHub numbers are added.
+The issue drafts are in `docs/issues/` (`scripts\create-issues.ps1`); the issues exist on GitHub
+(`MiroM73/MMDonkeyKong`) and their numbers are the same as the draft numbers (`NN-*.md`): issue 03
+in the tables = GitHub #3.
 
 Principle: **playable as early as possible** – a walking, jumping hero on one level (phase 3) comes
 before menus, saves and polish, and the web build (phase 2) exists from the start so that touch
