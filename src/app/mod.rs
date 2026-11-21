@@ -12,8 +12,10 @@ mod controls;
 mod dialogs;
 mod game_view;
 mod gamepad;
+mod high_scores;
 mod level_select;
 mod menu;
+mod name_entry;
 mod progress;
 mod scene;
 mod screens;
@@ -36,6 +38,7 @@ use screens::MenuState;
 pub(in crate::app) enum Screen {
     Title,
     LevelSelect,
+    HighScores,
     Game,
 }
 
@@ -184,6 +187,7 @@ impl eframe::App for App {
             .show(ui, |ui| match self.screen {
                 Screen::Title => self.title_ui(ui),
                 Screen::LevelSelect => self.level_select_ui(ui),
+                Screen::HighScores => self.high_scores_ui(ui),
                 Screen::Game => self.game_ui(ui),
             });
 

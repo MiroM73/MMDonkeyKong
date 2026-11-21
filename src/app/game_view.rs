@@ -2,6 +2,7 @@
 //! input, draws the playfield scaled to the available area, handles pause.
 
 use crate::app::controls::{self, Buttons, PressLatch};
+use crate::app::name_entry::NameEntry;
 use crate::app::scene::{self, Effect, Look, View};
 use crate::app::screens::{MenuInput, PauseChoice, VictoryChoice};
 use crate::app::touch_view;
@@ -25,6 +26,8 @@ pub(in crate::app) struct GameSession {
     pub(in crate::app) level: usize,
     /// The last level was completed and the "play again / quit" question is open.
     pub(in crate::app) victory_menu: bool,
+    /// The name being entered for a new high score.
+    pub(in crate::app) entry: Option<NameEntry>,
     stepper: FixedStep,
     paused: bool,
     /// Buttons that went down and no simulation step has consumed yet (a frame without a step
@@ -52,6 +55,7 @@ impl GameSession {
             state: GameState::start(builtin_level(level), seed, difficulty, lives, score),
             level,
             victory_menu: false,
+            entry: None,
             stepper: FixedStep::default(),
             paused: false,
             latch: PressLatch::default(),
@@ -229,8 +233,12 @@ impl App {
         let clicked = resp.hovered() && ctx.input(|i| i.pointer.primary_clicked());
 
         let ended = self.game.state.status != Status::Playing;
+        // A menu that opens in this frame must not see the key / tap that opened it.
+        let victory_open = self.game.victory_menu;
+        let entry_open = self.game.entry.is_some();
         if ended
-            && !self.game.victory_menu
+            && !victory_open
+            && !entry_open
             && (clicked
                 || pad.start_pressed
                 || pad.pressed.jump
@@ -238,7 +246,9 @@ impl App {
         {
             self.after_level(&ctx);
         }
-        self.handle_pause(&ctx);
+        if !ended {
+            self.handle_pause(&ctx);
+        }
         if self.game.state.status == Status::Playing && (pause_resp.clicked() || pad.start_pressed)
         {
             let paused = self.game.is_paused();
@@ -355,6 +365,7 @@ impl App {
         }
         if let Some((title, hint)) = banner
             && !self.game.victory_menu
+            && self.game.entry.is_none()
         {
             painter.rect_filled(field, 0.0, egui::Color32::from_black_alpha(150));
             painter.text(
@@ -397,7 +408,10 @@ impl App {
                 None => {}
             }
         }
-        if self.game.victory_menu {
+        if entry_open {
+            self.name_entry_ui(ui, &ctx, field);
+        }
+        if victory_open && self.game.victory_menu {
             match self.victory_menu(ui, field, menu_input) {
                 Some(VictoryChoice::PlayAgain) => self.new_game(&ctx),
                 Some(VictoryChoice::Quit) => {

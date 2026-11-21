@@ -3,6 +3,7 @@
 //! level ends. The rules themselves are in `crate::save` (pure, tested).
 
 use crate::app::game_view::GameSession;
+use crate::app::name_entry::EntryNext;
 use crate::app::*;
 use crate::game::{self, Status};
 use crate::save::{LoadError, SaveData};
@@ -84,19 +85,17 @@ impl App {
     /// a completed level goes on to the next one, the last one asks what to do next.
     pub(in crate::app) fn after_level(&mut self, ctx: &egui::Context) {
         let st = &self.game.state;
-        let (d, level) = (st.difficulty, self.game.level);
+        let level = self.game.level;
         match st.status {
             Status::Playing => {}
-            Status::GameOver => {
-                self.save.game_over(d, level, d.params().lives);
-                self.persist();
-                self.begin_level(ctx, level, None, 0);
-            }
+            Status::GameOver => self.finish_run(ctx, st.score, EntryNext::Restart),
             Status::Complete if !self.is_final_level() => {
                 let (lives, score) = (st.lives, st.score);
                 self.begin_level(ctx, level + 1, Some(lives), score);
             }
-            Status::Complete => self.game.victory_menu = true,
+            Status::Complete => self.finish_run(ctx, st.score, EntryNext::Victory),
         }
+        // The menu that may have opened is drawn in the next frame.
+        ctx.request_repaint();
     }
 }

@@ -38,6 +38,8 @@ pub struct Config {
     pub vibration: bool,
     /// The difficulty of the next level that starts (Game -> Difficulty).
     pub difficulty: Difficulty,
+    /// The name entered for the last high score (the next entry starts with it).
+    pub last_name: String,
 }
 
 impl Default for Config {
@@ -51,6 +53,7 @@ impl Default for Config {
             left_handed: false,
             vibration: true,
             difficulty: Difficulty::Normal,
+            last_name: "AAA".into(),
         }
     }
 }

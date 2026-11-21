@@ -165,6 +165,26 @@ a click / tap or Enter / A starts the level with the full lives and no score (`b
 replay never lowers the progress (`complete_level` only moves Continue forward). Esc / Start / the
 Back button return to the title screen. Level names are read once at start-up (`level_names`).
 
+### High scores (`save.rs`, `name_entry.rs`, `high_scores.rs`, #13)
+
+Per difficulty the save keeps the top ten (`Progress::high_scores`, best first). `Progress::qualifies`
+(score > 0 and a free place or better than the last) and `SaveData::add_high_score` (insert at the
+first place with a lower score, so an earlier entry wins a tie; truncate to ten) are pure and tested;
+a loaded table is sorted, cut to ten and its names limited to 12 characters.
+
+A run ends with a score when all lives are lost (game over) or the last level is completed:
+`finish_run` asks for a name when the score qualifies, otherwise goes straight on. **Name entry**
+(`NameEntry`, pure state machine, arcade style, `NAME_LEN` = 3 letters A-Z - decided with the owner):
+up / down change the letter under the cursor (wrapping), left / right move it, typing a letter sets
+it and moves on (W / A / S / D are letters here, so only the arrow keys navigate), Backspace goes
+back, Enter / gamepad A go to the next place and finish after the last one; for touch every place has
+up / down buttons and there is an OK button. It starts with the last name (`Config::last_name`).
+After it the score is stored and autosaved and the run goes on (restart the level after a game over,
+the "Play again / Quit" question after the last level). While a name is entered the game keys
+(restart, pause) are off. A menu (name entry, victory question) that opens in a frame never sees the
+key / tap that opened it (`entry_open` / `victory_open` are read before `after_level`).
+The high-score screen (title screen item) shows the table of one difficulty with tabs (left / right).
+
 ## Game view (`src/app/game_view.rs`)
 
 The central panel (no frame) is the game. `GameSession` (state, `FixedStep`, `paused`, `latch`)

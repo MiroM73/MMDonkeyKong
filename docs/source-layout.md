@@ -19,6 +19,8 @@ The files of `src/` and the conventions of the code.
 | `src/app/game_view.rs` | the game view: fixed-step loop from the frame time, keyboard input, scaled playfield drawing, pause |
 | `src/app/screens.rs` | menu input (`MenuInput`, `move_cursor`), the title screen, the pause menu and the end-of-game question |
 | `src/app/level_select.rs` | the level-select grid: `tile_info`, `grid_cols` (pure), the tiles with medals and padlocks |
+| `src/app/name_entry.rs` | `NameEntry` (the 3-letter arcade name, pure) and the entry overlay |
+| `src/app/high_scores.rs` | the high-score screen with difficulty tabs |
 | `src/app/progress.rs` | `impl App`: load / autosave the save, Continue / New game, what happens when a level ends |
 | `src/app/dialogs/` | one file per window (`about.rs`) |
 | `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `player.rs`, `barrel.rs`, `difficulty.rs` (the five steps and their parameter table), `level.rs` (format, parser, validator), `levels.rs` (embedded files), `input.rs`, `rng.rs`, `timestep.rs` (fixed step) |

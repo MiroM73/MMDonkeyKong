@@ -151,7 +151,7 @@ Pages. The README explains that it is a homage to the arcade genre.
   generation" above).
 - Touch: virtual d-pad + jump button only (no swipe gestures). Gamepad optional.
 - Languages: all four (en, sk, cs, de).
-- Records: local only (no online leaderboard).
+- Records: local only (no online leaderboard). High-score names are three arcade-style letters.
 - Save transfer between phone and PC: text **export / import** first; optional **cloud-folder
   sync** later (see `docs/platforms.md` -> Saves across platforms).
 - Web deployment on every push to `master`.

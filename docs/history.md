@@ -65,6 +65,11 @@ What was done when (one line per issue / release) and the open ideas of the owne
   from the title screen and the pause menu; keyboard / gamepad cursor, large tiles for touch, scrolling
   for many levels. Replaying never lowers the progress. Checked with temporary extra levels (only one level
   exists until #14).
+- 2026-11-22: #13 High scores: top ten per difficulty in the save, 3-letter arcade name entry (owner's
+  decision; keyboard typing, arrows, gamepad, touch buttons, remembers the last name), asked after a game over
+  and after the last level, high-score screen with a tab per difficulty from the title screen. Fixed on the
+  way: a menu that opened with Enter / a tap reacted to the same key / tap at once (the victory question
+  chose "Play again" immediately).
 
 ## Open ideas
 

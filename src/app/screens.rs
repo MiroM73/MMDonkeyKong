@@ -131,6 +131,8 @@ pub(in crate::app) struct MenuState {
     pub victory: usize,
     /// The cursor of the level select.
     pub level: usize,
+    /// The difficulty whose high scores are shown.
+    pub scores: Difficulty,
 }
 
 /// The items of the title screen, top to bottom.
@@ -139,13 +141,15 @@ enum TitleItem {
     Continue,
     NewGame,
     LevelSelect,
+    HighScores,
     Difficulty,
 }
 
-const TITLE_ITEMS: [TitleItem; 4] = [
+const TITLE_ITEMS: [TitleItem; 5] = [
     TitleItem::Continue,
     TitleItem::NewGame,
     TitleItem::LevelSelect,
+    TitleItem::HighScores,
     TitleItem::Difficulty,
 ];
 
@@ -197,6 +201,7 @@ impl App {
                 TitleItem::NewGame if self.menu.confirm_new => (t!("title.new_game_confirm"), true),
                 TitleItem::NewGame => (t!("title.new_game"), true),
                 TitleItem::LevelSelect => (t!("title.levels"), true),
+                TitleItem::HighScores => (t!("title.scores"), true),
                 TitleItem::Difficulty => (t!("title.difficulty", name = t!(diff.key())), true),
             };
             let resp = menu_item(&mut child, &text, size, self.menu.title == i, enabled);
@@ -224,6 +229,7 @@ impl App {
                 }
             }
             Some(TitleItem::LevelSelect) => self.enter_level_select(),
+            Some(TitleItem::HighScores) => self.enter_high_scores(),
             Some(TitleItem::Difficulty) => self.step_difficulty(1),
             None => {}
         }

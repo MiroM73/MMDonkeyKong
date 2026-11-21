@@ -21,6 +21,10 @@ pub const SAVE_VERSION: u32 = 1;
 const MAX_LIVES: u32 = 99;
 /// Entries of a high-score table.
 pub const HIGH_SCORES: usize = 10;
+/// Letters of a high-score name (arcade style).
+pub const NAME_LEN: usize = 3;
+/// Longer names in a hand-edited save are cut to this.
+const MAX_NAME_CHARS: usize = 12;
 
 /// Where "Continue" resumes: the start of a level with the lives and the score carried into it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -80,7 +84,40 @@ pub enum LoadError {
     TooNew(u32),
 }
 
+impl Progress {
+    /// Would `score` make the table? Zero never does; the table has ten places and a score
+    /// equal to the last one does not push it out (the earlier entry wins a tie).
+    pub fn qualifies(&self, score: u32) -> bool {
+        score > 0
+            && (self.high_scores.len() < HIGH_SCORES
+                || self.high_scores.last().is_some_and(|l| score > l.score))
+    }
+}
+
 impl SaveData {
+    /// Enters a score into the table of `d`; returns its place (0 = the best) or `None` when it
+    /// did not make the table. Sorted best first, an earlier entry stays above an equal score.
+    pub fn add_high_score(&mut self, d: Difficulty, name: &str, score: u32) -> Option<usize> {
+        let p = self.progress_mut(d);
+        if !p.qualifies(score) {
+            return None;
+        }
+        let rank = p
+            .high_scores
+            .iter()
+            .position(|h| h.score < score)
+            .unwrap_or(p.high_scores.len());
+        p.high_scores.insert(
+            rank,
+            HighScore {
+                name: name.to_owned(),
+                score,
+            },
+        );
+        p.high_scores.truncate(HIGH_SCORES);
+        Some(rank)
+    }
+
     pub fn progress(&self, d: Difficulty) -> Option<&Progress> {
         self.difficulties.get(&d)
     }
@@ -180,8 +217,12 @@ impl SaveData {
                     r.lives = r.lives.min(MAX_LIVES);
                 }
             }
+            // A stable sort keeps the order of equal scores.
             p.high_scores.sort_by_key(|h| std::cmp::Reverse(h.score));
             p.high_scores.truncate(HIGH_SCORES);
+            for h in &mut p.high_scores {
+                h.name = h.name.chars().take(MAX_NAME_CHARS).collect();
+            }
         }
     }
 
@@ -381,5 +422,79 @@ mod tests {
         // A game over in a replayed earlier level leaves Continue alone.
         s.game_over(D, 0, 3);
         assert_eq!(s.resume(D).unwrap().level, 1);
+    }
+
+    fn names(s: &SaveData, d: Difficulty) -> Vec<(String, u32)> {
+        s.progress(d)
+            .map(|p| {
+                p.high_scores
+                    .iter()
+                    .map(|h| (h.name.clone(), h.score))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn scores_are_kept_sorted_and_an_earlier_entry_wins_a_tie() {
+        let mut s = SaveData::default();
+        assert_eq!(s.add_high_score(D, "AAA", 500), Some(0));
+        assert_eq!(s.add_high_score(D, "BBB", 900), Some(0));
+        assert_eq!(s.add_high_score(D, "CCC", 500), Some(2)); // after the earlier 500
+        assert_eq!(s.add_high_score(D, "DDD", 700), Some(1));
+        let list = names(&s, D);
+        assert_eq!(
+            list,
+            [
+                ("BBB".into(), 900),
+                ("DDD".into(), 700),
+                ("AAA".into(), 500),
+                ("CCC".into(), 500)
+            ]
+        );
+        // Another difficulty has its own table.
+        assert!(names(&s, Difficulty::Easy).is_empty());
+    }
+
+    #[test]
+    fn the_table_holds_ten_and_zero_never_qualifies() {
+        let mut s = SaveData::default();
+        assert!(!s.progress_mut(D).qualifies(0));
+        assert_eq!(s.add_high_score(D, "ZZZ", 0), None);
+        for i in 1..=10 {
+            assert!(s.add_high_score(D, "AAA", i * 100).is_some());
+        }
+        assert_eq!(names(&s, D).len(), HIGH_SCORES);
+        // Equal to the last place (100) or lower: out. Higher: in, the last one drops out.
+        assert!(!s.progress_mut(D).qualifies(100));
+        assert_eq!(s.add_high_score(D, "BBB", 50), None);
+        assert_eq!(s.add_high_score(D, "CCC", 150), Some(9));
+        let list = names(&s, D);
+        assert_eq!(list.len(), HIGH_SCORES);
+        assert_eq!(list.last().unwrap(), &("CCC".to_owned(), 150));
+        assert!(list.iter().all(|(_, sc)| *sc >= 150));
+    }
+
+    #[test]
+    fn a_loaded_table_is_sorted_cut_and_its_names_limited() {
+        let mut text = String::from(r#"{"difficulties":{"normal":{"high_scores":["#);
+        for i in 0..14 {
+            if i > 0 {
+                text.push(',');
+            }
+            text.push_str(&format!(
+                r#"{{"name":"averyveryverylongname","score":{}}}"#,
+                i * 10
+            ));
+        }
+        text.push_str("]}}}");
+        let mut mem = MemoryStorage::default();
+        mem.save(SAVE_KEY, &text).unwrap();
+        let (s, err) = SaveData::load(&mut mem, 8);
+        assert_eq!(err, None);
+        let list = names(&s, D);
+        assert_eq!(list.len(), HIGH_SCORES);
+        assert_eq!(list[0].1, 130);
+        assert_eq!(list[0].0.chars().count(), MAX_NAME_CHARS);
     }
 }
