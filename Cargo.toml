@@ -3,7 +3,7 @@ name = "mmdonkeykong"
 version = "0.1.0"
 edition = "2024"
 license = "Unlicense"
-description = "Donkey Kong style plathorm game"
+description = "Donkey Kong style platform game"
 repository = "https://github.com/MiroM73/MMDonkeyKong"
 
 [dependencies]

@@ -26,6 +26,13 @@ Why: with wgpu the AMD driver kept one CPU core busy while idle (RusTrace issue 
 `config.rs`: `Config` with `#[serde(default)]`, written through a temporary file (atomic rename).
 The app marks `cfg_dirty` and `save_config` writes at most every 2 s and on exit.
 
+## Game architecture (planned, see `docs/game-design.md`, `docs/platforms.md`)
+
+`src/game/` = pure simulation (fixed 60 Hz step, `Input` in, `Event`s out, seeded RNG, levels
+parsed from `levels/*.txt`), `src/app/` = egui front end (painter drawing, input collection incl.
+touch, menus), `Storage` / `Audio` traits with native and web backends. This section is rewritten
+as the issues of `docs/roadmap.md` land.
+
 ## Tests
 
 `cargo test`: `i18n` (file format, completeness of the built-in languages, language resolution),

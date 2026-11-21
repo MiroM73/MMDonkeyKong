@@ -12,6 +12,11 @@ What was done when (one line per issue / release) and the open ideas of the owne
   window (own OS window with in-window fallback, MM PortLens `native_window.rs`); `CLAUDE.md`,
   `TEMPLATE.md`, `docs/reuse.md`. RusTrace migration: issues #68, #69.
 
+- 2026-11-21: game specified – `docs/game-design.md` (mechanics, 4 level types, 5 difficulty steps,
+  saves, level select, controls), `docs/platforms.md` (one Rust code base → wasm for the browser on
+  GitHub Pages + PWA offline + Windows exe), roadmap in 8 phases, issue drafts 01–20 in
+  `docs/issues/`. Nothing implemented yet.
+
 ## Open ideas
 
 - _(none yet)_

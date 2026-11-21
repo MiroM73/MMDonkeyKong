@@ -1,8 +1,5 @@
 # MMDonkeyKong – project memory for Claude
 
-> Template note: this file comes from the Rust project template. Fill in **"What the application is"** and
-> the feature index, then delete this note.
-
 ## Working with the owner
 - The owner (Miroslav, GitHub `MiroM73`) talks to Claude in **Slovak, informal "ty" form**. Answer in Slovak.
 - Everything inside the repository is in **English**: code, comments, README, docs, commit messages,
@@ -33,8 +30,17 @@
   Avoid names that collide with existing projects or carry unwanted associations.
 
 ## What the application is
-_(Describe the application here: what it does, what it is modelled on, the target platform.
-Main target is Windows; the code should keep building on Linux, CI checks it.)_
+An original arcade platformer in the spirit of the 1981 ape-and-barrels cabinet (ladders, sloped
+girders, rolling barrels, hammer). **Original names, art and sounds only** – no Nintendo assets or
+"Donkey Kong" / "Mario" naming inside the game. Targets: **web browser** (PC, tablet, phone –
+touch controls, hosted on GitHub Pages, installable PWA) and **offline Windows exe** – one Rust
+code base (egui/eframe, wasm32 via Trunk). Five difficulty steps, autosave after every completed
+level, level select among completed levels. Specification: `docs/game-design.md`; build /
+publish / offline: `docs/platforms.md`; work order: `docs/roadmap.md` (issue drafts in
+`docs/issues/`). The game logic lives in the platform-independent `src/game/` (no egui, no I/O,
+fixed 60 Hz step, deterministic seeded RNG, unit-tested); `src/app/` is only the front end.
+Native-only code is `cfg(not(target_arch = "wasm32"))` – keep the wasm and the Linux builds green.
+Main target is Windows; the code should keep building on Linux, CI checks it.
 
 Siblings with the same structure and conventions: **RusTrace** (`MiroM73/Rustrace`, a CMTrace-style
 log viewer) and **MM PortLens** (`MiroM73/MMPortLens`, a TCPView-style connection viewer). When a
@@ -42,6 +48,8 @@ feature exists there (i18n extras, column filters, auto refresh, table export, h
 updates, command line, splash, file association, …), take its code and adapt it instead of writing
 it again – `docs/reuse.md` says where each feature lives.
 
+- **`docs/game-design.md`** / **`docs/platforms.md`** – what the game is; how it is built for
+  browser / exe / offline. Update them when a decision changes.
 - **`docs/architecture.md`** – how every part works inside. Read the section of a feature before
   changing it, and update it with the change.
 - **`docs/history.md`** – what was done when (a line per issue / release), open ideas of the owner.
