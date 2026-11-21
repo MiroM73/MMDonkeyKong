@@ -22,7 +22,7 @@ and browser problems are found early, not at the end.
 ## Phase 0 – decisions
 | Issue | What | Status |
 |-------|------|--------|
-| – | Owner answers the open questions of `docs/game-design.md` (name, art, saves, …) | open |
+| – | Owner answers the open questions of `docs/game-design.md` (answered 2026-11-21, recorded there) | done |
 
 ## Phase 1 – foundation
 | Issue | What | Status |
@@ -34,7 +34,7 @@ and browser problems are found early, not at the end.
 | Issue | What | Status |
 |-------|------|--------|
 | 03 | wasm32 build with Trunk, `cfg`-gate native-only code, local `trunk serve` | open |
-| 04 | GitHub Pages deployment workflow + CI `wasm` job | open |
+| 04 | GitHub Pages deployment workflow (every push to `master`) + CI `wasm` job | open |
 
 ## Phase 3 – first playable level
 | Issue | What | Status |
@@ -56,12 +56,14 @@ and browser problems are found early, not at the end.
 | 11 | `Storage` backends (file, localStorage), versioned save, autosave after each level, Continue | open |
 | 12 | Level-select screen: completed levels + the next one, locked levels greyed out | open |
 | 13 | High scores per difficulty | open |
+| 21 | Save export / import as text (merge rule), moving progress between phone and PC | open |
 
 ## Phase 6 – more content
 | Issue | What | Status |
 |-------|------|--------|
 | 14 | Levels 2–4: Conveyors, Lifts, Rivets (new hazards, level files) | open |
 | 15 | Levels 5–8: harder variants; balance pass over all five difficulties | open |
+| 22 | Level generator + validator (`game::levelgen`), levels from seeds, test over many seeds | open |
 
 ## Phase 7 – sound and polish
 | Issue | What | Status |
@@ -73,10 +75,15 @@ and browser problems are found early, not at the end.
 | Issue | What | Status |
 |-------|------|--------|
 | 18 | PWA: manifest, icons, service worker, "add to home screen", offline check | open |
-| 19 | Windows exe release (existing scripts), web zip attached to the release, README with the play link | open |
+| 19 | Windows exe release (existing scripts), web zip attached to the release, README with the play link and the Linux / macOS build instructions | open |
 | 20 | Test on real phone / tablet / browsers, performance and battery check, fix list | open |
 
+## Phase 9 – after the first release
+| Issue | What | Status |
+|-------|------|--------|
+| 23 | Cloud-folder sync of the save on the desktop (path in settings, merge rule) | open |
+| 24 | Phone sync via private GitHub Gist or WebDAV (token in settings) | open |
+| 25 | In-game level editor with test play and text export / import | open |
+
 ## Later ideas
-- Level editor (levels are data, so an in-game editor is possible), custom level import.
-- Save export / import as text (move progress between devices).
 - Daily challenge with a fixed seed; online leaderboard (needs a backend – out of scope for now).

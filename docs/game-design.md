@@ -52,6 +52,26 @@ timings) in `levels/*.txt`, embedded with `include_str!` and parsed by a pure, t
 level file has a name, a type and a "difficulty base"; the difficulty setting scales it (see below).
 Adding a level must not require touching the game loop.
 
+### Level generation and creation
+
+Creating new levels has to be cheap, so levels are produced in three ways that share one format:
+
+1. **Hand-written** `levels/*.txt` – readable ASCII grid (one character per tile: girder, ladder,
+   broken ladder, hammer, goal, ape, start, rivet, conveyor left / right, lift) plus a header with
+   name, type, time bonus and spawn timings. Easy to edit in any text editor and to diff in git.
+2. **Generated** – a pure function `generate(type, seed, size_hint) -> Level` (module
+   `game::levelgen`) builds a valid level from a seed: stacked sloped girders with alternating
+   direction, ladders placed so that every girder is reachable, hammers and hazards by the level
+   type. Every generated level is run through the **validator** (reachability of the goal by a
+   graph search over girders and ladders, no ladder into a wall, jump gaps within the jump arc,
+   spawn points on girders) and rejected / re-rolled when invalid. The first-release levels may be
+   hand-tuned outputs of the generator saved as files (seed in the header).
+3. **In-game editor** (later) – paint the ASCII grid on screen, test play, export / import as
+   text (same format, so a level can be pasted between phone and PC).
+
+The format, parser, validator and generator are pure code with unit tests (every shipped level
+and a few hundred generated seeds must validate).
+
 ## Difficulty (5 steps)
 
 Chosen in the new-game screen and changeable in the settings between levels:
@@ -71,7 +91,8 @@ difficulty.
 ## Progress, saving and level selection
 
 - **Autosave after every completed level** (and when the player leaves a level through the menu):
-  difficulty, highest reached level, score, lives, high scores, settings.
+  per difficulty the score, lives and best scores; shared across difficulties the set of
+  completed levels; plus high scores and settings.
 - The **level-select screen** lists all levels the player has already **completed plus the next one**;
   locked levels are shown greyed out. A level can be replayed at any time; replaying does not lose
   the progress of the highest level.
@@ -114,9 +135,22 @@ Original names, art and sounds only. No ripped sprites, no original music, no "D
 "Mario" naming, to avoid trademark problems – especially because the game is published on GitHub
 Pages. The README explains that it is a homage to the arcade genre.
 
-## Open questions for the owner
+## Decisions of the owner (2026-11-21)
 
-See the list in the chat that came with this document; answers are recorded here (then removed
-from the list):
-
-- _(none answered yet)_
+- Original characters: hero **Jumper**, ape **Kong-o-Tron** (working names, may change).
+- Graphics: retro pixel art drawn in code, no image files.
+- Audio: chip-tune generated in code, music and effects.
+- Progress / saves are kept **per difficulty** (continue state, scores, high scores). A level
+  completed on any difficulty is **unlocked for every other difficulty** (unlocking is shared,
+  scores are not).
+- Game over (all lives lost): the player restarts at the **beginning of the current level with the
+  score reset to zero** (no return to level 1).
+- 8 levels for the first release; levels must be easy to **generate and create** (see "Level
+  generation" above).
+- Touch: virtual d-pad + jump button only (no swipe gestures). Gamepad optional.
+- Languages: all four (en, sk, cs, de).
+- Records: local only (no online leaderboard).
+- Save transfer between phone and PC: text **export / import** first; optional **cloud-folder
+  sync** later (see `docs/platforms.md` -> Saves across platforms).
+- Web deployment on every push to `master`.
+- Release exe: Windows only; the README describes how to build on Linux and macOS.

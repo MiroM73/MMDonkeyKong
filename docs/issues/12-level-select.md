@@ -1,6 +1,6 @@
 # Level-select screen (completed levels + the next one)
 
-Grid of level tiles with number, name, best score and a star / medal per difficulty. Completed levels and the next one are playable; later ones are greyed out with a lock icon. Replaying a level never lowers the progress. Reachable from the title screen and from the pause menu; large touch-friendly tiles, keyboard / gamepad focus navigation. Tests for the unlock logic.
+Grid of level tiles with number, name, best score and a star / medal per difficulty. Completed levels (on any difficulty) and the next one are playable; later ones are greyed out with a lock icon. Replaying a level never lowers the progress. Reachable from the title screen and from the pause menu; large touch-friendly tiles, keyboard / gamepad focus navigation. Tests for the unlock logic.
 
 ## Done when
 - `cargo test`, `cargo fmt`, `cargo clippy --all-targets --locked -- -D warnings` are clean (Linux build keeps working; after issue 03 also the wasm build).

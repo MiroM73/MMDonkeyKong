@@ -16,6 +16,9 @@ What was done when (one line per issue / release) and the open ideas of the owne
   saves, level select, controls), `docs/platforms.md` (one Rust code base → wasm for the browser on
   GitHub Pages + PWA offline + Windows exe), roadmap in 8 phases, issue drafts 01–20 in
   `docs/issues/`. Nothing implemented yet.
+- 2026-11-21: owner answered the design questions (recorded in `docs/game-design.md`): saves per
+  difficulty with shared unlocking, local records, level generator, save export / import, optional
+  cloud sync, deploy on every push, Windows-only exe. Issues 21-25 added to the roadmap.
 
 ## Open ideas
 

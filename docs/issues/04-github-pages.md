@@ -1,6 +1,6 @@
 # Deploy the web build to GitHub Pages and check it in CI
 
-- `.github/workflows/pages.yml`: install the wasm target and Trunk, `trunk build --release --public-url /MMDonkeyKong/`, `actions/upload-pages-artifact`, `actions/deploy-pages` (permissions `pages: write`, `id-token: write`); triggered by push to `master` + manual.
+- `.github/workflows/pages.yml`: install the wasm target and Trunk, `trunk build --release --public-url /MMDonkeyKong/`, `actions/upload-pages-artifact`, `actions/deploy-pages` (permissions `pages: write`, `id-token: write`); triggered by **every push to `master`** + manual.
 - CI job `wasm` in `ci.yml`: clippy for the wasm target and a Trunk build.
 - The owner switches Settings -> Pages -> Source to 'GitHub Actions' once (describe it in `docs/releasing.md`).
 - README: play link `https://mirom73.github.io/MMDonkeyKong/` and a badge.

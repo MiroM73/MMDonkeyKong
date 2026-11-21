@@ -1,6 +1,6 @@
 # Release: Windows exe, web bundle, README with the play link
 
-Use `scripts\release.ps1`; attach `mmdonkeykong-web.zip` (Trunk output) to the release; written release notes as required by CLAUDE.md; README 'Play online' / 'Play offline' sections. The owner runs the release script himself.
+Use `scripts\release.ps1`; attach `mmdonkeykong-web.zip` (Trunk output) to the release; written release notes as required by CLAUDE.md; README 'Play online' / 'Play offline' sections and 'Build on Linux / macOS' (packages, `cargo run --release`; see `docs/platforms.md`). The owner runs the release script himself.
 
 ## Done when
 - `cargo test`, `cargo fmt`, `cargo clippy --all-targets --locked -- -D warnings` are clean (Linux build keeps working; after issue 03 also the wasm build).

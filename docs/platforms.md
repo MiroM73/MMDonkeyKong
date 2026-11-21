@@ -47,8 +47,7 @@ scripts) is reused unchanged, and the game logic stays a pure module testable on
   icons). `trunk serve` for local development with live reload, `trunk build --release --public-url
   /MMDonkeyKong/` for the release.
 - Hosting: **GitHub Pages** from a workflow `.github/workflows/pages.yml` (`actions/upload-pages-
-  artifact` + `actions/deploy-pages`), triggered by a push to `master` (or by a release tag – to be
-  decided). The game then lives at `https://mirom73.github.io/MMDonkeyKong/` (exact URL is written
+  artifact` + `actions/deploy-pages`), triggered by **every push to `master`** (owner's decision). The game then lives at `https://mirom73.github.io/MMDonkeyKong/` (exact URL is written
   to the README once published). The Pages source in the repository settings is switched to
   "GitHub Actions" once, by the owner.
 - Size: release wasm with `opt-level = "s"`/`"z"` for the web profile, `wasm-opt -Oz` (Trunk runs
@@ -74,9 +73,33 @@ scripts) is reused unchanged, and the game logic stays a pure module testable on
 
 ## Saves across platforms
 
-Saves live in the platform storage (file / `localStorage`), so progress is **per device** unless the
-owner wants more (see the open questions: a text export / import in the settings is the cheap
-solution, cloud sync is out of scope).
+Saves live in the platform storage (file / `localStorage`), so by default progress is **per
+device**. Three steps, in this order:
+
+1. **Export / import as text** (first release): settings -> *Export progress* shows / copies a
+   compact text (versioned JSON, optionally base64 + checksum) and can save it as a file (desktop
+   file dialog, browser download); *Import progress* pastes text or loads a file. Import **merges**
+   instead of overwriting: completed levels = union, best score per level and difficulty = the
+   higher one, high scores = merged top 10. Works the same on every platform, no accounts.
+2. **Cloud-folder sync on the desktop (optional, later):** the owner sets a folder (typically a
+   OneDrive / Google Drive / Dropbox folder); the game reads / writes `mmdonkeykong-save.json`
+   there with the same merge rule on start, after every level and on exit. The cloud client does the
+   syncing, the game needs no account or network code.
+3. **Phone / browser sync (optional, even later):** a browser cannot be given an arbitrary path
+   (the File System Access API exists only in Chromium on a PC; iOS Safari has nothing like it).
+   Realistic options, to be chosen when this phase starts: a **private GitHub Gist** with a
+   personal access token pasted into the settings (fits the owner's GitHub account, no server),
+   or a **WebDAV** URL. The token is stored only on the device and never committed. Until then,
+   the phone uses export / import (step 1), for example through a cloud-drive file picker.
+
+## Building on Linux and macOS
+
+Only the Windows exe is released. The README gets a section "Build on Linux / macOS": install
+Rust, on Linux the packages eframe needs (`libx11`, `libxkbcommon`, `libwayland`, `libgl`,
+`libasound2-dev` when native audio uses ALSA - exact list verified in CI on Ubuntu), then
+`cargo run --release`; on macOS Xcode command line tools and `cargo run --release`. CI already
+builds and tests on Linux; macOS is documented but not tested by CI (an optional `macos-latest`
+job can be added later). The web version needs no build at all for those users.
 
 ## CI
 
