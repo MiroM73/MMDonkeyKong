@@ -47,7 +47,7 @@ and browser problems are found early, not at the end.
 ## Phase 4 – input on every device
 | Issue | What | Status |
 |-------|------|--------|
-| 08 | Keyboard + touch controls (multi-touch d-pad and jump), portrait / landscape layouts, no page zoom / scroll | open |
+| 08 | Keyboard + touch controls (multi-touch d-pad and jump), portrait / landscape layouts, no page zoom / scroll | done |
 | 09 | Gamepad support (optional) | open |
 
 ## Phase 5 – difficulty, progress, level select

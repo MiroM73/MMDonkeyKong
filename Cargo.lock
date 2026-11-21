@@ -1847,6 +1847,7 @@ dependencies = [
  "serde_json",
  "sys-locale",
  "wasm-bindgen-futures",
+ "web-sys",
  "winresource",
 ]
 

@@ -1,11 +1,11 @@
 //! The game view: runs the fixed-step simulation from the frame time, collects the keyboard
 //! input, draws the playfield scaled to the available area, handles pause.
 
+use crate::app::controls::{self, Buttons, PressLatch};
 use crate::app::scene::{self, Effect, Look, View};
+use crate::app::touch_view;
 use crate::app::*;
-use crate::game::{
-    self, Event, FIELD_H, FIELD_W, FixedStep, GameState, Input, Status, builtin_level,
-};
+use crate::game::{self, Event, FIELD_H, FIELD_W, FixedStep, GameState, Status, builtin_level};
 
 const LETTERBOX: egui::Color32 = egui::Color32::from_rgb(8, 8, 14);
 const FIELD_BG: egui::Color32 = egui::Color32::from_rgb(18, 20, 48);
@@ -20,9 +20,9 @@ pub(in crate::app) struct GameSession {
     state: GameState,
     stepper: FixedStep,
     paused: bool,
-    /// The jump key went down and no simulation step has consumed it yet (a frame without a
-    /// step must not lose it; a frame with two steps delivers it once).
-    jump_latch: bool,
+    /// Buttons that went down and no simulation step has consumed yet (a frame without a step
+    /// must not lose them; a tap shorter than a frame still moves one step).
+    latch: PressLatch,
     /// The first frame after a pause: its frame time contains the whole pause, so it is dropped.
     skip_dt: bool,
     /// The static background of the level (girders, ladders), built on first draw.
@@ -39,7 +39,7 @@ impl GameSession {
             state: GameState::new(builtin_level(0), seed),
             stepper: FixedStep::default(),
             paused: false,
-            jump_latch: false,
+            latch: PressLatch::default(),
             skip_dt: false,
             background: None,
             effects: Vec::new(),
@@ -51,7 +51,7 @@ impl GameSession {
         if self.paused != paused {
             self.paused = paused;
             self.stepper.reset();
-            self.jump_latch = false;
+            self.latch.clear();
             self.skip_dt = !paused;
         }
     }
@@ -72,20 +72,42 @@ pub(in crate::app) fn field_scale(avail_w: f32, avail_h: f32) -> f32 {
     if fit >= 1.0 { fit.floor() } else { fit }
 }
 
-/// Keyboard state of this frame: held directions and the jump edge.
-fn read_input(ctx: &egui::Context) -> (Input, bool) {
+/// Keyboard state of this frame: the held buttons and the ones that went down in this frame
+/// (a press and release inside one frame is "pressed" but not "held").
+fn read_keys(ctx: &egui::Context) -> (Buttons, Buttons) {
     ctx.input(|i| {
         let held = |keys: &[egui::Key]| keys.iter().any(|&k| i.key_down(k));
-        let input = Input {
-            left: held(&[egui::Key::ArrowLeft, egui::Key::A]),
-            right: held(&[egui::Key::ArrowRight, egui::Key::D]),
-            up: held(&[egui::Key::ArrowUp, egui::Key::W]),
-            down: held(&[egui::Key::ArrowDown, egui::Key::S]),
-            jump_held: i.key_down(egui::Key::Space),
-            jump_pressed: false,
-        };
-        (input, i.key_pressed(egui::Key::Space))
+        let went_down = |keys: &[egui::Key]| keys.iter().any(|&k| i.key_pressed(k));
+        let left = [egui::Key::ArrowLeft, egui::Key::A];
+        let right = [egui::Key::ArrowRight, egui::Key::D];
+        let up = [egui::Key::ArrowUp, egui::Key::W];
+        let down = [egui::Key::ArrowDown, egui::Key::S];
+        let jump = [egui::Key::Space];
+        (
+            Buttons {
+                left: held(&left),
+                right: held(&right),
+                up: held(&up),
+                down: held(&down),
+                jump: held(&jump),
+            },
+            Buttons {
+                left: went_down(&left),
+                right: went_down(&right),
+                up: went_down(&up),
+                down: went_down(&down),
+                jump: went_down(&jump),
+            },
+        )
     })
+}
+
+/// A short vibration in the browser (phones); nothing elsewhere.
+fn vibrate(_ms: u32) {
+    #[cfg(target_arch = "wasm32")]
+    if let Some(w) = web_sys::window() {
+        let _ = w.navigator().vibrate_with_duration(_ms);
+    }
 }
 
 impl App {
@@ -108,16 +130,15 @@ impl App {
     }
 
     /// Runs the simulation steps due in this frame.
-    fn run_steps(&mut self, ctx: &egui::Context) {
-        let (mut input, jump_edge) = read_input(ctx);
-        self.game.jump_latch |= jump_edge;
+    fn run_steps(&mut self, ctx: &egui::Context, held: Buttons, pressed: Buttons) {
+        self.game.latch.press(pressed);
         let dt = if std::mem::take(&mut self.game.skip_dt) {
             0.0
         } else {
             ctx.input(|i| i.unstable_dt)
         };
         for _ in 0..self.game.stepper.advance(dt) {
-            input.jump_pressed = std::mem::take(&mut self.game.jump_latch);
+            let input = self.game.latch.take_step(held);
             let (px, py) = (self.game.state.player.x, self.game.state.player.y);
             let events = game::step(&mut self.game.state, &input);
             let p = &self.game.state.player;
@@ -128,6 +149,9 @@ impl App {
             self.game.effects.retain(|e| e.age < scene::EXPLOSION_STEPS);
             for event in events {
                 // Sounds follow with issue #16.
+                if event == Event::Died && self.cfg.vibration {
+                    vibrate(200);
+                }
                 if event == Event::Smash {
                     let r = self.game.state.hammer_rect();
                     self.game.effects.push(Effect {
@@ -140,48 +164,104 @@ impl App {
         }
     }
 
+    /// Starts a new game after "game over" / "level complete" (Enter / R / a tap).
+    fn restart(&mut self, ctx: &egui::Context) {
+        // Game over starts again with the score at zero; after a completed level there is
+        // no next level yet (#12), so the same one is replayed.
+        // The frame time makes every new game differ (a fixed seed would repeat the barrels).
+        self.game = GameSession::new(ctx.input(|i| (i.time * 1000.0) as u64));
+        // A finished game requests no repaints, so this frame's time is the whole idle wait
+        // (it would look like a stall and pause the new game): drop it.
+        self.game.skip_dt = true;
+    }
+
+    /// The touch / mouse part of the input: the buttons held now and the ones that went down in
+    /// this frame, for the on-screen controls at `layout`.
+    fn pointer_buttons(
+        &mut self,
+        ctx: &egui::Context,
+        layout: &controls::Layout,
+    ) -> (Buttons, Buttons) {
+        let mut started = ctx.input(|i| self.touches.update(&i.events));
+        let mut positions: Vec<egui::Pos2> = self.touches.positions().collect();
+        if layout.controls && !self.touches.seen {
+            // No touch screen (the controls were forced on): the mouse acts as one finger.
+            ctx.input(|i| {
+                if let Some(p) = i.pointer.interact_pos() {
+                    if i.pointer.primary_down() {
+                        positions.push(p);
+                    }
+                    if i.pointer.primary_pressed() {
+                        started.push(p);
+                    }
+                }
+            });
+        }
+        (
+            controls::touch_buttons(layout, positions.into_iter()),
+            controls::touch_buttons(layout, started.into_iter()),
+        )
+    }
+
     pub(in crate::app) fn game_ui(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
+        let (resp, painter) = ui.allocate_painter(ui.available_size(), egui::Sense::hover());
+        let visible = controls::controls_visible(&self.cfg.touch_controls, self.touches.seen);
+        let layout = controls::layout(
+            resp.rect,
+            visible,
+            self.cfg.touch_size,
+            self.cfg.left_handed,
+        );
+        let (touch_held, touch_pressed) = self.pointer_buttons(&ctx, &layout);
+        // The pause button is a widget of its own: a click anywhere on the view must not pause
+        // (on a touch screen every d-pad and jump tap is a pointer click too).
+        let pause_resp = ui.interact(layout.pause, resp.id.with("pause"), egui::Sense::click());
+        let clicked = resp.hovered() && ctx.input(|i| i.pointer.primary_clicked());
+
         if self.game.state.status != Status::Playing
-            && ctx.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::R))
+            && (clicked
+                || ctx.input(|i| i.key_pressed(egui::Key::Enter) || i.key_pressed(egui::Key::R)))
         {
-            // Game over starts again with the score at zero; after a completed level there is
-            // no next level yet (#12), so the same one is replayed.
-            // The frame time makes every new game differ (a fixed seed would repeat the barrels).
-            self.game = GameSession::new(ctx.input(|i| (i.time * 1000.0) as u64));
-            // A finished game requests no repaints, so this frame's time is the whole idle wait
-            // (it would look like a stall and pause the new game): drop it.
-            self.game.skip_dt = true;
+            self.restart(&ctx);
         }
         self.handle_pause(&ctx);
+        if self.game.state.status == Status::Playing {
+            if pause_resp.clicked() {
+                let paused = self.game.is_paused();
+                self.game.set_paused(!paused);
+                ctx.request_repaint();
+            } else if clicked && self.game.is_paused() {
+                self.game.set_paused(false);
+                ctx.request_repaint();
+            }
+        }
         if !self.game.is_paused() && self.game.state.status == Status::Playing {
-            self.run_steps(&ctx);
+            let (keys_held, keys_pressed) = read_keys(&ctx);
+            self.run_steps(
+                &ctx,
+                keys_held.or(touch_held),
+                keys_pressed.or(touch_pressed),
+            );
             // The game animates every frame; a paused game requests nothing (idle CPU).
             ctx.request_repaint();
         }
 
-        let (resp, painter) = ui.allocate_painter(ui.available_size(), egui::Sense::hover());
-        // A pointer click only: `Sense::click` would also react to Enter / Space on a focused view.
-        if resp.hovered() && ctx.input(|i| i.pointer.primary_clicked()) {
-            let paused = self.game.is_paused();
-            self.game.set_paused(!paused);
-            // This frame already passed the repaint request above: ask again after an unpause.
-            ctx.request_repaint();
-        }
         painter.rect_filled(resp.rect, 0.0, LETTERBOX);
 
         // Integer scale in physical pixels, then back to points; the field is centred and
         // snapped to whole physical pixels so the pixel art stays sharp at any DPI.
         let ppp = ctx.pixels_per_point();
-        let scale = field_scale(resp.rect.width() * ppp, resp.rect.height() * ppp);
+        let area = layout.field_area;
+        let scale = field_scale(area.width() * ppp, area.height() * ppp);
         if scale <= 0.0 {
             return;
         }
         let size = egui::vec2(FIELD_W as f32, FIELD_H as f32) * scale / ppp;
         let snap = |v: f32| (v * ppp).round() / ppp;
         let origin = egui::pos2(
-            snap(resp.rect.center().x - size.x / 2.0),
-            snap(resp.rect.center().y - size.y / 2.0),
+            snap(area.center().x - size.x / 2.0),
+            snap(area.center().y - size.y / 2.0),
         );
         let field = egui::Rect::from_min_size(origin, size);
         let to_screen = |x: f32, y: f32| origin + egui::vec2(x, y) * scale / ppp;
@@ -255,6 +335,14 @@ impl App {
             );
         }
 
+        let (keys_held, _) = read_keys(&ctx);
+        touch_view::draw_controls(&painter, &layout, keys_held.or(touch_held));
+        touch_view::draw_pause_button(
+            &painter,
+            layout.pause,
+            self.game.is_paused(),
+            pause_resp.hovered(),
+        );
         if self.game.is_paused() {
             painter.rect_filled(field, 0.0, egui::Color32::from_black_alpha(150));
             painter.text(

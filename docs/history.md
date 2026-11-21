@@ -41,6 +41,10 @@ What was done when (one line per issue / release) and the open ideas of the owne
   frames, jump, climb, hammer, dead), ape (idle, chest beat, throw), friend, rolling / climbing
   barrels, hammer, smash explosion, fireball frames (unused until #14); girders and ladders are
   rasterised once per level into a texture. The hero is teal, not red / blue, to stay original.
+- 2026-11-21: #8 Controls: direction presses are latched like the jump (a tap shorter than a frame still
+  moves), multi-touch on-screen d-pad + jump button (`controls.rs`, `touch_view.rs`), portrait / landscape
+  layout, pause button instead of click-to-pause, tap to resume / restart, View -> Controls (mode, size,
+  left-handed, vibration), vibration on death in the browser.
 
 ## Open ideas
 

@@ -13,6 +13,8 @@ The files of `src/` and the conventions of the code.
 | `src/app/menu.rs` | menu bar: File, View (theme, language), Help |
 | `src/app/sprites.rs` | the pixel-art sprites as const text-row arrays (`sprites!` macro, `Id`), `decode`, the `NEAREST` textures |
 | `src/app/scene.rs` | draws the playfield: background raster (girders, ladders), animation frame choice, effects |
+| `src/app/controls.rs` | `Buttons`, `PressLatch` (tap shorter than a frame), `Touches` (multi-touch), pure layout of the touch controls and d-pad hit test |
+| `src/app/touch_view.rs` | draws the d-pad, jump button and pause button |
 | `src/app/game_view.rs` | the game view: fixed-step loop from the frame time, keyboard input, scaled playfield drawing, pause |
 | `src/app/dialogs/` | one file per window (`about.rs`) |
 | `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `player.rs`, `barrel.rs`, `level.rs` (format, parser, validator), `levels.rs` (embedded files), `input.rs`, `rng.rs`, `timestep.rs` (fixed step); later difficulty, progress |

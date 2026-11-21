@@ -108,24 +108,51 @@ level the same level is replayed until the level select, #12).
 
 ## Game view (`src/app/game_view.rs`)
 
-The central panel (no frame) is the game. `GameSession` (state, `FixedStep`, `paused`,
-`jump_latch`) lives in `App`. Per frame: `handle_pause` (Esc / P toggle, click on the view toggles,
-losing the window focus pauses - `InputState::focused`), then, when not paused, `run_steps`:
-the keyboard is read once (`read_input`: arrows / WASD, Space), `jump_latch` remembers a Space
-press until a step consumes it (a frame without a step does not lose it, a frame with two steps
-delivers it once), `FixedStep::advance(unstable_dt)` says how many 60 Hz steps to run, and
+The central panel (no frame) is the game. `GameSession` (state, `FixedStep`, `paused`, `latch`)
+lives in `App`. Per frame: the view is allocated first, `controls::layout` says where the
+playfield and the on-screen controls go, then `handle_pause` (Esc / P toggle, losing the window
+focus pauses - `InputState::focused`), the pause button, and, when not paused, `run_steps`:
+`FixedStep::advance(unstable_dt)` says how many 60 Hz steps to run and
 `ctx.request_repaint()` keeps the game going. A paused game requests no repaint (idle CPU); the
 frame time comes from egui, not `std::time`, so the same code works in the browser.
 
 Drawing: the 224 x 256 playfield is scaled by `field_scale` - the largest whole number of
 **physical** pixels that fits (crisp pixel art at any DPI), a fraction only when the area is
 smaller than the field - centred and snapped to whole physical pixels; the rest is letter-box.
-The status bar shows the key hint. Hiding the menu on touch screens is part of #8.
 
 A frame longer than 0.5 s (hidden browser tab, sleep, window drag) pauses the game as well.
-After a pause the first frame's time (the whole pause) is dropped (`skip_dt`). Click-to-pause on the
-whole view (a pointer click checked by hand, not `Sense::click`, which would also fire on Enter / Space of a focused view) is a desktop convenience; #8 must replace it with a pause button, because on a touch
-screen the d-pad and jump taps would toggle the pause.
+After a pause the first frame's time (the whole pause) is dropped (`skip_dt`).
+
+## Input and touch controls (`src/app/controls.rs`, `touch_view.rs`)
+
+Keyboard, touch and (later) gamepad all produce `Buttons` (left / right / up / down / jump):
+the **held** set of this frame and the set that **went down** in this frame. The pressed set goes
+into `PressLatch`, the held set is passed to `PressLatch::take_step`, which returns the
+`game::Input` of the next step: held | latched, `jump_pressed` from the latch. The latch is
+consumed by the first step, kept by a frame without a step and cleared on pause. So a key tap
+shorter than a frame (down and up inside one frame: `key_pressed` but not `key_down`) still moves
+one step - for every direction, not only the jump.
+
+**Touch.** egui's pointer follows one finger only, so `Touches` keeps a map of the raw
+`egui::Event::Touch` fingers (start / move insert, end / cancel remove) and `touch_buttons` tests
+every finger against the d-pad (3 x 3 grid around the centre with a dead zone, diagonals work,
+a finger may slide 50 % outside) and the jump circle: move and jump at the same time work.
+`Touches::seen` (any touch event) switches the controls on in the mode "auto"; `Config::touch_controls`
+is "auto" / "on" / "off" (View -> Controls); in "on" without a touch screen the mouse acts as one
+finger, which makes desktop testing possible. Size (`touch_size` 0.6 - 1.6) and the left-handed
+swap are settings too. The smallest hit areas stay above ~9 mm (34 css px); a test checks it.
+
+**Layout** (`controls::layout`, pure and tested): portrait (taller than wide) puts the playfield
+on top and the controls in a band below (at most 42 % of the height, the controls shrink to fit);
+landscape keeps the whole area for the playfield and draws the controls over the left / right
+edges. `index.html` already disables page scroll, pull-to-refresh and (double-tap) zoom.
+
+**Pause button.** Top right of the view, a widget of its own (`Sense::click`). The whole view is
+not a pause click any more (every d-pad tap is a pointer click too). While paused a tap anywhere
+resumes; after game over / level complete a tap anywhere restarts (touch has no Enter / R).
+
+**Vibration.** `Event::Died` calls `navigator.vibrate(200)` in the browser (`web-sys`
+`Navigator`, wasm only) when `Config::vibration` is on; nowhere else.
 
 ## Rendering (`src/app/sprites.rs`, `scene.rs`)
 

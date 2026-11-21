@@ -17,9 +17,9 @@ An original single-player arcade platformer in the spirit of the classic 1981 ap
 
 ## At a glance
 
-- five difficulty steps, progress saved after every level, replay any completed level (planned)
-- keyboard, touch (phone / tablet) and gamepad controls (planned)
-- playable in the browser and installable for offline use (planned), Windows exe (planned)
+- five difficulty steps, progress saved after every level, replay any completed level (gamepad planned)
+- keyboard, touch (phone / tablet) and gamepad controls (gamepad planned)
+- playable in the browser and installable for offline use (gamepad planned), Windows exe (planned)
 - light / dark / system theme, UI zoom (Ctrl + plus / minus)
 - [translatable user interface](docs/languages.md) (English, Slovenčina, Čeština, Deutsch) – no recompiling
 - settings in `%APPDATA%\MMDonkeyKong\config.json`

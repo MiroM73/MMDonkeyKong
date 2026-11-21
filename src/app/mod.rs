@@ -8,11 +8,13 @@
 //! - a new window goes into `dialogs/<name>.rs` (+ `mod <name>;` in `dialogs/mod.rs`),
 //! - keep files under ~800 lines.
 
+mod controls;
 mod dialogs;
 mod game_view;
 mod menu;
 mod scene;
 mod sprites;
+mod touch_view;
 
 use std::time::Duration;
 
@@ -45,6 +47,8 @@ pub struct App {
     lang_code: String,
     show_about: bool,
     game: GameSession,
+    /// The live touches; "seen" turns the on-screen controls on in the automatic mode.
+    touches: controls::Touches,
     sprites: sprites::Sprites,
     /// A message for the status bar (text, since when); cleared after a few seconds.
     status_info: Option<(String, f64)>,
@@ -62,6 +66,7 @@ impl App {
             show_about: false,
             // Fixed seed for the first game; a restart (Enter / R) uses the frame time.
             game: GameSession::new(1),
+            touches: controls::Touches::default(),
             sprites: sprites::Sprites::load(&cc.egui_ctx),
             status_info: None,
         };

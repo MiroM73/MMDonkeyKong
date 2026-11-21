@@ -20,6 +20,8 @@ dirs = "6"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 eframe = { version = "0.37", default-features = false, features = ["glow", "default_fonts"] }
 wasm-bindgen-futures = "0.4"
+# Vibration on a hit (navigator.vibrate).
+web-sys = { version = "0.3", features = ["Window", "Navigator"] }
 # The "js" feature reads navigator.language in the browser (without it the language is never found).
 sys-locale = { version = "0.3", features = ["js"] }
 # Add when needed (versions as used in RusTrace / MM PortLens):

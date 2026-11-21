@@ -26,6 +26,14 @@ pub struct Config {
     pub language: String,
     /// UI zoom factor (Ctrl + plus / minus).
     pub ui_zoom: f32,
+    /// On-screen touch controls: "auto" (shown after the first touch), "on" or "off".
+    pub touch_controls: String,
+    /// Scale of the on-screen controls (0.6 - 1.6).
+    pub touch_size: f32,
+    /// Left-handed layout: the jump button on the left, the d-pad on the right.
+    pub left_handed: bool,
+    /// Vibrate when the hero dies (browsers that support it, i.e. phones).
+    pub vibration: bool,
 }
 
 impl Default for Config {
@@ -34,6 +42,10 @@ impl Default for Config {
             theme: "system".into(),
             language: String::new(),
             ui_zoom: 1.0,
+            touch_controls: "auto".into(),
+            touch_size: 1.0,
+            left_handed: false,
+            vibration: true,
         }
     }
 }

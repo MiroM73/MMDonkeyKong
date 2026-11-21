@@ -28,6 +28,7 @@ impl App {
                         }
                     }
                 });
+                self.controls_menu(ui);
                 self.language_menu(ui);
             });
             ui.menu_button(t!("menu.help"), |ui| {
@@ -36,6 +37,46 @@ impl App {
                     self.show_about = true;
                 }
             });
+        });
+    }
+
+    /// View → Controls: when the on-screen buttons show, their size and side, vibration.
+    fn controls_menu(&mut self, ui: &mut egui::Ui) {
+        ui.menu_button(t!("menu.view.controls"), |ui| {
+            for (value, key) in [
+                ("auto", "controls.auto"),
+                ("on", "controls.on"),
+                ("off", "controls.off"),
+            ] {
+                if ui
+                    .radio(self.cfg.touch_controls == value, t!(key))
+                    .clicked()
+                {
+                    self.cfg.touch_controls = value.to_owned();
+                    self.cfg_dirty = true;
+                }
+            }
+            ui.separator();
+            ui.horizontal(|ui| {
+                ui.label(t!("controls.size"));
+                let slider =
+                    egui::Slider::new(&mut self.cfg.touch_size, 0.6..=1.6).show_value(false);
+                if ui.add(slider).changed() {
+                    self.cfg_dirty = true;
+                }
+            });
+            if ui
+                .checkbox(&mut self.cfg.left_handed, t!("controls.left_handed"))
+                .changed()
+            {
+                self.cfg_dirty = true;
+            }
+            if ui
+                .checkbox(&mut self.cfg.vibration, t!("controls.vibration"))
+                .changed()
+            {
+                self.cfg_dirty = true;
+            }
         });
     }
 
