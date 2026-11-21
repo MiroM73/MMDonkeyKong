@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#08080e">
+  <title>MMDonkeyKong</title>
+  <!-- Trunk compiles the crate to WebAssembly and injects the loader here. -->
+  <link data-trunk rel="rust" data-bin="mmdonkeykong" data-wasm-opt="z" data-wasm-opt-params="--all-features">
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #08080e;
+      overflow: hidden;
+      /* No page scroll, pull-to-refresh or double-tap zoom while playing. */
+      touch-action: none;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #c8c8d8;
+      font: 16px system-ui, sans-serif;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game_canvas"></canvas>
+  <div id="loading">Loading…</div>
+</body>
+</html>

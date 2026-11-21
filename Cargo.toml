@@ -7,11 +7,21 @@ description = "Donkey Kong style platform game"
 repository = "https://github.com/MiroM73/MMDonkeyKong"
 
 [dependencies]
-eframe = { version = "0.37", features = ["glow"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-dirs = "6"
 sys-locale = "0.3"
+
+# Desktop: OpenGL (glow) with the default eframe features (wgpu fallback, clipboard, ...).
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+eframe = { version = "0.37", features = ["glow"] }
+dirs = "6"
+
+# Browser (wasm32, built with Trunk, see docs/platforms.md): WebGL through glow only.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+eframe = { version = "0.37", default-features = false, features = ["glow", "default_fonts"] }
+wasm-bindgen-futures = "0.4"
+# The "js" feature reads navigator.language in the browser (without it the language is never found).
+sys-locale = { version = "0.3", features = ["js"] }
 # Add when needed (versions as used in RusTrace / MM PortLens):
 #   egui_extras = "0.37"   regex = "1"   rfd = "0.17"   open = "5"   chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 #   sha2 = "0.11"   flate2 = "1"   crc32fast = "1"   egui_plot = "0.38"   memmap2 = "0.9"   encoding_rs = "0.8"

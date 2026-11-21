@@ -8,6 +8,15 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+/// The settings folder (`%APPDATA%\MMDonkeyKong`). There is none in the browser: the settings
+/// are not stored there yet (the browser storage backend comes with issue #11).
+pub fn config_dir() -> Option<PathBuf> {
+    #[cfg(not(target_arch = "wasm32"))]
+    return dirs::config_dir().map(|d| d.join("MMDonkeyKong"));
+    #[cfg(target_arch = "wasm32")]
+    None
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -31,7 +40,7 @@ impl Default for Config {
 
 impl Config {
     pub fn path() -> Option<PathBuf> {
-        dirs::config_dir().map(|d| d.join("MMDonkeyKong").join("config.json"))
+        config_dir().map(|d| d.join("config.json"))
     }
 
     /// Loads the settings. The second value is `false` on first run (no settings file yet).

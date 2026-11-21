@@ -1,0 +1,10 @@
+# Web build (see docs/platforms.md):
+#   trunk serve                                         local server with live reload
+#   trunk build --release --public-url /MMDonkeyKong/   what GitHub Pages serves (issue #4)
+[build]
+target = "index.html"
+dist = "dist"
+
+[serve]
+addresses = ["127.0.0.1"]
+port = 8080

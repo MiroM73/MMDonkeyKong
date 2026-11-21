@@ -8,6 +8,9 @@ const LETTERBOX: egui::Color32 = egui::Color32::from_rgb(8, 8, 14);
 const FIELD_BG: egui::Color32 = egui::Color32::from_rgb(18, 20, 48);
 const FIELD_BORDER: egui::Color32 = egui::Color32::from_rgb(200, 60, 60);
 const MARKER: egui::Color32 = egui::Color32::from_rgb(250, 210, 60);
+/// A frame that took longer than this (hidden browser tab, computer sleep, window drag) pauses
+/// the game instead of silently continuing.
+const STALL_PAUSE_SECS: f32 = 0.5;
 
 /// The running game and the state of its loop.
 pub(in crate::app) struct GameSession {
@@ -76,16 +79,18 @@ fn read_input(ctx: &egui::Context) -> (Input, bool) {
 impl App {
     /// Pause keys and losing the window focus; returns after updating `game.paused`.
     fn handle_pause(&mut self, ctx: &egui::Context) {
-        let (toggle, focused) = ctx.input(|i| {
+        let (toggle, focused, dt) = ctx.input(|i| {
             (
                 i.key_pressed(egui::Key::Escape) || i.key_pressed(egui::Key::P),
                 i.focused,
+                i.unstable_dt,
             )
         });
         let paused = self.game.is_paused();
+        let stalled = dt > STALL_PAUSE_SECS && !self.game.skip_dt;
         if toggle {
             self.game.set_paused(!paused);
-        } else if !focused && !paused {
+        } else if (!focused || stalled) && !paused {
             self.game.set_paused(true);
         }
     }

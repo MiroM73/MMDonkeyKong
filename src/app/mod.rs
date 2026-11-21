@@ -12,7 +12,7 @@ mod dialogs;
 mod game_view;
 mod menu;
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use eframe::egui;
 
@@ -34,13 +34,17 @@ pub struct App {
     cfg: Config,
     /// Settings changed since the last write.
     cfg_dirty: bool,
-    last_save: Instant,
+    /// Time of the last settings write (egui time, seconds; `std::time::Instant` does not work
+    /// in the browser).
+    last_save: f64,
+    /// Time of the current frame (egui time, seconds).
+    now: f64,
     /// Code of the language in use, e.g. "sk".
     lang_code: String,
     show_about: bool,
     game: GameSession,
     /// A message for the status bar (text, since when); cleared after a few seconds.
-    status_info: Option<(String, Instant)>,
+    status_info: Option<(String, f64)>,
 }
 
 impl App {
@@ -50,7 +54,8 @@ impl App {
             lang_code: i18n::set_language(&cfg.language),
             cfg,
             cfg_dirty: false,
-            last_save: Instant::now(),
+            last_save: cc.egui_ctx.input(|i| i.time),
+            now: cc.egui_ctx.input(|i| i.time),
             show_about: false,
             // Fixed seed: the placeholder game has nothing random yet (levels: issue #6).
             game: GameSession::new(1),
@@ -94,30 +99,31 @@ impl App {
 
     /// Writes the settings when they changed (at most every `SAVE_INTERVAL`, or `force`d).
     fn save_config(&mut self, force: bool) {
-        if !self.cfg_dirty || (!force && self.last_save.elapsed() < SAVE_INTERVAL) {
+        if !self.cfg_dirty || (!force && self.now - self.last_save < SAVE_INTERVAL.as_secs_f64()) {
             return;
         }
         match self.cfg.save() {
             Ok(()) => self.cfg_dirty = false,
             Err(e) => self.info(t!("error.save_settings", error = e)),
         }
-        self.last_save = Instant::now();
+        self.last_save = self.now;
     }
 
     fn info(&mut self, s: String) {
-        self.status_info = Some((s, Instant::now()));
+        self.status_info = Some((s, self.now));
     }
 }
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
+        self.now = ctx.input(|i| i.time);
         self.track_zoom(&ctx);
 
         egui::Panel::top("menu").show(ui, |ui| self.menu_bar(ui));
         egui::Panel::bottom("status").show(ui, |ui| {
             if let Some((_, at)) = &self.status_info
-                && at.elapsed() > Duration::from_secs(8)
+                && self.now - *at > 8.0
             {
                 self.status_info = None;
             }

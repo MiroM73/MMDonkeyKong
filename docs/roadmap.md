@@ -34,7 +34,7 @@ and browser problems are found early, not at the end.
 ## Phase 2 – browser build (early, so every later step is tested there too)
 | Issue | What | Status |
 |-------|------|--------|
-| 03 | wasm32 build with Trunk, `cfg`-gate native-only code, local `trunk serve` | open |
+| 03 | wasm32 build with Trunk, `cfg`-gate native-only code, local `trunk serve` | done |
 | 04 | GitHub Pages deployment workflow (every push to `master`) + CI `wasm` job | open |
 
 ## Phase 3 – first playable level

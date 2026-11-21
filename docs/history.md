@@ -26,6 +26,9 @@ What was done when (one line per issue / release) and the open ideas of the owne
 - 2026-11-21: #1 game window: the central panel is the game (224 x 256 playfield, integer scaling in
   physical pixels, 60 Hz fixed step from the frame time, keyboard, pause on Esc / P / click / lost
   focus, no repaint while paused). Placeholder marker moves with the arrow keys.
+- 2026-11-21: #3 browser build: wasm32 target with Trunk (`index.html`, `Trunk.toml`), `main.rs`
+  split into desktop / wasm entry points (`native.rs`), desktop-only code behind `cfg`, frame time from
+  egui instead of `Instant`.
 
 ## Open ideas
 

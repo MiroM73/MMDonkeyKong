@@ -12,6 +12,18 @@ loop: menu panel, status panel, central panel (the game view), then the windows 
 changed settings. The program repaints only on input or when a timer is pending
 (`request_repaint_after`), so an idle window costs no CPU.
 
+## Desktop and browser entry points
+
+`main.rs` has two `fn main`s: desktop (`native::start`: window options, renderer choice, see
+below) and wasm32 (`eframe::WebRunner` on the canvas `game_canvas` of `index.html`, which also
+shows / removes the "Loading" text and any start error). Both create the same `app::App`.
+`Cargo.toml` has two `eframe` entries: desktop with the default features + `glow`, wasm32 with
+`default-features = false` + `glow` + `default_fonts` (WebGL, no wgpu, small bundle). Desktop-only
+code is behind `cfg(not(target_arch = "wasm32"))`. `App` keeps its own clock from egui's frame
+time (`now`), because `std::time::Instant` panics in the browser. `index.html` sets
+`touch-action: none`, `overscroll-behavior: none`, a no-zoom viewport and a full-screen canvas so
+a touch screen does not scroll or zoom the page while playing.
+
 ## Renderer and refresh frames
 
 OpenGL (glow) is the default; when it cannot start (also a panic before the app exists) the
@@ -62,6 +74,7 @@ Drawing: the 224 x 256 playfield is scaled by `field_scale` - the largest whole 
 smaller than the field - centred and snapped to whole physical pixels; the rest is letter-box.
 The status bar shows the key hint. Hiding the menu on touch screens is part of #8.
 
+A frame longer than 0.5 s (hidden browser tab, sleep, window drag) pauses the game as well.
 After a pause the first frame's time (the whole pause) is dropped (`skip_dt`). Click-to-pause on the
 whole view is a desktop convenience; #8 must replace it with a pause button, because on a touch
 screen the d-pad and jump taps would toggle the pause.

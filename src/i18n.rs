@@ -138,7 +138,7 @@ pub fn lang_dirs() -> Vec<PathBuf> {
 
 /// Per-user language folder (`%APPDATA%\MMDonkeyKong\lang` on Windows).
 pub fn user_lang_dir() -> Option<PathBuf> {
-    dirs::config_dir().map(|d| d.join("MMDonkeyKong").join("lang"))
+    crate::config::config_dir().map(|d| d.join("lang"))
 }
 
 fn external_files(code: &str) -> Vec<PathBuf> {

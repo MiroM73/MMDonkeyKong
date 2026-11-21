@@ -5,6 +5,8 @@ use crate::app::*;
 impl App {
     pub(in crate::app) fn menu_bar(&mut self, ui: &mut egui::Ui) {
         egui::MenuBar::new().ui(ui, |ui| {
+            // A web page cannot be closed by the program, so the File menu (only Exit) is desktop-only.
+            #[cfg(not(target_arch = "wasm32"))]
             ui.menu_button(t!("menu.file"), |ui| {
                 if ui.button(t!("menu.file.exit")).clicked() {
                     ui.close();

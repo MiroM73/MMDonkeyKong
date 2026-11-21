@@ -6,7 +6,9 @@ The files of `src/` and the conventions of the code.
 
 | File | Purpose |
 |------|---------|
-| `src/main.rs` | window start-up, renderer choice (OpenGL, wgpu fallback with DX12 preference) |
+| `src/main.rs` | module list and the two entry points (desktop `main`, wasm32 `main` on the canvas) |
+| `src/native.rs` | desktop only: window options, renderer choice (OpenGL, wgpu fallback with DX12 preference) |
+| `index.html`, `Trunk.toml` | the web build (Trunk): page, canvas, no-zoom / no-scroll styles; `dist/` is the output (ignored) |
 | `src/app/mod.rs` | the `App` struct, helper types / consts, `App::new`, the frame loop (`eframe::App::ui`) |
 | `src/app/menu.rs` | menu bar: File, View (theme, language), Help |
 | `src/app/game_view.rs` | the game view: fixed-step loop from the frame time, keyboard input, scaled playfield drawing, pause |
