@@ -22,6 +22,7 @@ use std::time::Duration;
 use eframe::egui;
 
 use crate::config::Config;
+use crate::game::Difficulty;
 use crate::{i18n, t};
 use game_view::GameSession;
 
@@ -59,6 +60,7 @@ pub struct App {
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let (cfg, _first_run) = Config::load();
+        let cfg_difficulty = cfg.difficulty;
         let app = Self {
             lang_code: i18n::set_language(&cfg.language),
             cfg,
@@ -67,7 +69,7 @@ impl App {
             now: cc.egui_ctx.input(|i| i.time),
             show_about: false,
             // Fixed seed for the first game; a restart (Enter / R) uses the frame time.
-            game: GameSession::new(1),
+            game: GameSession::new(1, cfg_difficulty),
             touches: controls::Touches::default(),
             gamepad: gamepad::Gamepad::new(),
             sprites: sprites::Sprites::load(&cc.egui_ctx),

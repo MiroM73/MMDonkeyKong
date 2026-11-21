@@ -48,6 +48,11 @@ What was done when (one line per issue / release) and the open ideas of the owne
 - 2026-11-21: #9 Gamepad: `gilrs` on the desktop, the Gamepad API in the browser; stick / d-pad move and
   climb, A jumps, Start pauses / restarts; idle polling while a pad is connected; CI installs libudev-dev.
 - 2026-11-22: touch assist: with the on-screen controls a sideways jump grabs a ladder it passes without "up"; a sideways jump from a ladder jumps off in that direction (owner's request after phone testing).
+- 2026-11-22: #10 Five difficulty steps: `Difficulty` + one `Params` table (lives, barrel speed, spawn
+  interval, ladder-descent chance, hammer count, score multiplier) applied by `GameState::start`;
+  `bonus_hammer` lines in level files for the extra hammers of the easier steps; menu Game -> Difficulty
+  (`Config::difficulty`), name in the HUD. Normal is bit-identical to the old game. Balance numbers are
+  the first proposal of `docs/game-design.md` and are **not tuned by playing yet**.
 
 ## Open ideas
 

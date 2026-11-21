@@ -3,7 +3,7 @@
 //! One `key: values` per line, `#` starts a comment, blank lines are ignored. Keys: `name`,
 //! `type`, `bonus`, `bonus_drop`, `bonus_every` (seconds), `barrel_every` (seconds), `extra_life`,
 //! `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
-//! `hammer x y`. Errors carry the line number (`ParseError`).
+//! `hammer x y`, `bonus_hammer x y`. Errors carry the line number (`ParseError`).
 
 use std::fmt;
 
@@ -33,6 +33,8 @@ pub struct Level {
     pub goal: (f32, f32),
     pub geometry: Geometry,
     pub hammers: Vec<(f32, f32)>,
+    /// Extra hammers placed only on the easier difficulties (`bonus_hammer x y`).
+    pub bonus_hammers: Vec<(f32, f32)>,
 }
 
 /// A problem in a level file; `line` is 1-based, 0 means the file as a whole.
@@ -134,6 +136,7 @@ impl Level {
         let mut goal = None;
         let mut geometry = Geometry::default();
         let mut hammers = Vec::new();
+        let mut bonus_hammers = Vec::new();
 
         for (i, raw) in text.lines().enumerate() {
             let line = i + 1;
@@ -200,6 +203,7 @@ impl Level {
                     goal = Some(point(line, key, value)?);
                 }
                 "hammer" => hammers.push(point(line, key, value)?),
+                "bonus_hammer" => bonus_hammers.push(point(line, key, value)?),
                 "girder" => {
                     let v = numbers(line, key, value, 4)?;
                     in_field(line, v[0], v[1])?;
@@ -244,6 +248,7 @@ impl Level {
             goal: need(goal, "goal")?,
             geometry,
             hammers,
+            bonus_hammers,
         };
         Ok(level)
     }
@@ -264,7 +269,7 @@ impl Level {
         let start = on(self.start.0, self.start.1).ok_or("the start is not on a girder")?;
         let goal = on(self.goal.0, self.goal.1).ok_or("the goal is not on a girder")?;
         on(self.ape.0, self.ape.1).ok_or("the ape is not on a girder")?;
-        for (x, y) in &self.hammers {
+        for (x, y) in self.hammers.iter().chain(&self.bonus_hammers) {
             on(*x, *y).ok_or_else(|| format!("the hammer at ({x}, {y}) is not on a girder"))?;
         }
         // Graph: girders are nodes, intact ladders edges (both directions).

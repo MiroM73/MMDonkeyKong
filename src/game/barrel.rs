@@ -1,11 +1,12 @@
 //! Rolling barrels: they roll downhill along a girder, sometimes climb down an intact ladder
 //! (random, from the seeded `Rng`) and fall off the girder ends. Pure and deterministic.
 
+use super::difficulty::Params;
 use super::player::SNAP;
 use super::rng::Rng;
 use super::{FIELD_H, Geometry, Rect};
 
-/// Rolling / descending speed in pixels per step.
+/// Rolling / descending speed in pixels per step (at obstacle speed 1.0).
 pub const ROLL_SPEED: f32 = 0.8;
 /// Horizontal speed while falling off a girder end.
 pub const DROP_VX: f32 = 0.5;
@@ -13,8 +14,6 @@ const GRAVITY: f32 = 0.15;
 const MAX_FALL_SPEED: f32 = 5.0;
 /// Barrel size: a square of `2 * RADIUS`, `x` / `y` are the middle of the bottom edge.
 pub const RADIUS: f32 = 4.0;
-/// One barrel in `LADDER_ODDS` takes a ladder it rolls over.
-const LADDER_ODDS: u32 = 3;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BarrelMode {
@@ -64,12 +63,13 @@ impl Barrel {
         self.y > FIELD_H as f32 + 16.0 || self.x < -16.0 || self.x > super::FIELD_W as f32 + 16.0
     }
 
-    pub fn step(&mut self, geo: &Geometry, rng: &mut Rng) {
+    /// One step; `p` scales the speed and sets the chance of climbing down a ladder.
+    pub fn step(&mut self, geo: &Geometry, rng: &mut Rng, p: &Params) {
         match self.mode {
-            BarrelMode::Rolling { dir } => self.roll(geo, rng, dir),
+            BarrelMode::Rolling { dir } => self.roll(geo, rng, dir, p),
             BarrelMode::Descending { ladder } => {
                 let l = geo.ladders[ladder];
-                self.y += ROLL_SPEED;
+                self.y += ROLL_SPEED * p.obstacle_speed;
                 if self.y >= l.bottom {
                     self.y = l.bottom;
                     match geo.ground_near(self.x, self.y) {
@@ -108,13 +108,13 @@ impl Barrel {
         }
     }
 
-    fn roll(&mut self, geo: &Geometry, rng: &mut Rng, dir: i8) {
+    fn roll(&mut self, geo: &Geometry, rng: &mut Rng, dir: i8, p: &Params) {
         let old_x = self.x;
-        self.x += f32::from(dir) * ROLL_SPEED;
+        self.x += f32::from(dir) * ROLL_SPEED * p.obstacle_speed;
         let Some(s) = geo.ground_near(self.x, self.y) else {
             // Rolled off the end of the girder.
             self.mode = BarrelMode::Falling {
-                vx: f32::from(dir) * DROP_VX,
+                vx: f32::from(dir) * DROP_VX * p.obstacle_speed,
                 vy: 0.0,
                 dir,
             };
@@ -128,7 +128,7 @@ impl Barrel {
                 && ((old_x < l.x && self.x >= l.x) || (old_x > l.x && self.x <= l.x))
         });
         if let Some(i) = crossed
-            && rng.below(LADDER_ODDS) == 0
+            && rng.below(p.ladder_chance.1) < p.ladder_chance.0
         {
             self.x = geo.ladders[i].x;
             self.mode = BarrelMode::Descending { ladder: i };
@@ -152,12 +152,13 @@ fn downhill(geo: &Geometry, x: f32, y: f32, fallback: i8) -> i8 {
 
 #[cfg(test)]
 mod tests {
+    use super::super::difficulty::Difficulty;
     use super::super::player::{Girder, Ladder};
     use super::*;
 
     fn run(b: &mut Barrel, geo: &Geometry, rng: &mut Rng, steps: usize) {
         for _ in 0..steps {
-            b.step(geo, rng);
+            b.step(geo, rng, &Difficulty::Normal.params());
         }
     }
 
@@ -232,7 +233,7 @@ mod tests {
             let mut rng = Rng::new(seed);
             let mut climbed = false;
             for _ in 0..200 {
-                b.step(&geo, &mut rng);
+                b.step(&geo, &mut rng, &Difficulty::Normal.params());
                 climbed |= matches!(b.mode, BarrelMode::Descending { .. });
             }
             if climbed {
@@ -249,7 +250,7 @@ mod tests {
             let mut b = Barrel::thrown(10.0, 90.0, 1);
             let mut rng = Rng::new(seed);
             for _ in 0..200 {
-                b.step(&geo, &mut rng);
+                b.step(&geo, &mut rng, &Difficulty::Normal.params());
                 assert!(!matches!(b.mode, BarrelMode::Descending { .. }));
             }
         }
@@ -263,12 +264,33 @@ mod tests {
             let mut rng = Rng::new(seed);
             (0..300)
                 .map(|_| {
-                    b.step(&geo, &mut rng);
+                    b.step(&geo, &mut rng, &Difficulty::Normal.params());
                     (b.x, b.y)
                 })
                 .collect::<Vec<_>>()
         };
         assert_eq!(path(3), path(3));
+    }
+
+    #[test]
+    fn the_obstacle_speed_scales_the_roll() {
+        let geo = slope_right();
+        let travelled = |d: Difficulty| {
+            let mut b = Barrel::thrown(10.0, 60.0, 1);
+            let mut rng = Rng::new(1);
+            for _ in 0..40 {
+                b.step(&geo, &mut rng, &Difficulty::Normal.params());
+            }
+            let x = b.x;
+            for _ in 0..30 {
+                b.step(&geo, &mut rng, &d.params());
+            }
+            b.x - x
+        };
+        let normal = travelled(Difficulty::Normal);
+        assert!((normal - 30.0 * ROLL_SPEED).abs() < 1e-3, "{normal}");
+        assert!(travelled(Difficulty::Relaxed) < normal);
+        assert!(travelled(Difficulty::Insane) > normal);
     }
 
     #[test]

@@ -41,3 +41,7 @@ ladder: 110 60.0 96.7
 # hammer: x y
 hammer: 100 173.1
 hammer: 150 95.0
+
+# bonus_hammer: x y   (extra hammers, only on the easier difficulties; Relaxed +2, Easy +1)
+bonus_hammer: 60 206.4
+bonus_hammer: 150 138.1

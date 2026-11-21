@@ -5,7 +5,9 @@ use crate::app::controls::{self, Buttons, PressLatch};
 use crate::app::scene::{self, Effect, Look, View};
 use crate::app::touch_view;
 use crate::app::*;
-use crate::game::{self, Event, FIELD_H, FIELD_W, FixedStep, GameState, Status, builtin_level};
+use crate::game::{
+    self, Difficulty, Event, FIELD_H, FIELD_W, FixedStep, GameState, Status, builtin_level,
+};
 
 const LETTERBOX: egui::Color32 = egui::Color32::from_rgb(8, 8, 14);
 const FIELD_BG: egui::Color32 = egui::Color32::from_rgb(18, 20, 48);
@@ -34,9 +36,9 @@ pub(in crate::app) struct GameSession {
 }
 
 impl GameSession {
-    pub(in crate::app) fn new(seed: u64) -> Self {
+    pub(in crate::app) fn new(seed: u64, difficulty: Difficulty) -> Self {
         Self {
-            state: GameState::new(builtin_level(0), seed),
+            state: GameState::start(builtin_level(0), seed, difficulty, None, 0),
             stepper: FixedStep::default(),
             paused: false,
             latch: PressLatch::default(),
@@ -170,7 +172,7 @@ impl App {
         // Game over starts again with the score at zero; after a completed level there is
         // no next level yet (#12), so the same one is replayed.
         // The frame time makes every new game differ (a fixed seed would repeat the barrels).
-        self.game = GameSession::new(ctx.input(|i| (i.time * 1000.0) as u64));
+        self.game = GameSession::new(ctx.input(|i| (i.time * 1000.0) as u64), self.cfg.difficulty);
         // A finished game requests no repaints, so this frame's time is the whole idle wait
         // (it would look like a stall and pause the new game): drop it.
         self.game.skip_dt = true;
@@ -309,6 +311,13 @@ impl App {
             egui::Align2::LEFT_TOP,
             t!("game.score", score = st.score),
             hud.clone(),
+            HUD,
+        );
+        painter.text(
+            to_screen(4.0, 12.0),
+            egui::Align2::LEFT_TOP,
+            t!(st.difficulty.key()),
+            egui::FontId::monospace(6.0 * scale / ppp),
             HUD,
         );
         painter.text(

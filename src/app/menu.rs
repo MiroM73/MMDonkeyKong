@@ -13,6 +13,7 @@ impl App {
                     ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                 }
             });
+            ui.menu_button(t!("menu.game"), |ui| self.difficulty_menu(ui));
             ui.menu_button(t!("menu.view"), |ui| {
                 ui.menu_button(t!("menu.view.theme"), |ui| {
                     for (value, key) in [
@@ -38,6 +39,18 @@ impl App {
                 }
             });
         });
+    }
+
+    /// Game → Difficulty: applies from the next level start (a running level keeps its numbers).
+    fn difficulty_menu(&mut self, ui: &mut egui::Ui) {
+        for d in Difficulty::ALL {
+            if ui.radio(self.cfg.difficulty == d, t!(d.key())).clicked() {
+                self.cfg.difficulty = d;
+                self.cfg_dirty = true;
+            }
+        }
+        ui.separator();
+        ui.label(t!("difficulty.note"));
     }
 
     /// View → Controls: when the on-screen buttons show, their size and side, vibration.

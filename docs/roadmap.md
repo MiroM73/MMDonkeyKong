@@ -53,7 +53,7 @@ and browser problems are found early, not at the end.
 ## Phase 5 – difficulty, progress, level select
 | Issue | What | Status |
 |-------|------|--------|
-| 10 | Five difficulty steps (`Difficulty` table: speed / spawn / lives / score) | open |
+| 10 | Five difficulty steps (`Difficulty` table: speed / spawn / lives / score) | done |
 | 11 | `Storage` backends (file, localStorage), versioned save, autosave after each level, Continue | open |
 | 12 | Level-select screen: completed levels + the next one, locked levels greyed out | open |
 | 13 | High scores per difficulty | open |

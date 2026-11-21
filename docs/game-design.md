@@ -84,7 +84,7 @@ Chosen in the new-game screen and changeable in the settings between levels:
 | 4 | Hard | 3 | 1.20× | 0.8× | higher | normal | 1.5× |
 | 5 | Insane | 2 | 1.45× | 0.65× | high | −1 | 2.0× |
 
-The numbers are a first proposal (a `Difficulty` struct in code, one table, tuned by playing).
+The numbers are a first proposal (a `Difficulty` struct in code, one table, tuned by playing). Hammer count: the level file lists its own `hammer` lines and optional `bonus_hammer` lines; "extra" = +2, "+1" = +1 of those (as many as the level has), "−1" removes one hammer (never the last). The extra-life score and the time bonus scale with the score multiplier.
 Difficulty only scales parameters; it never changes level geometry. High scores are kept per
 difficulty.
 

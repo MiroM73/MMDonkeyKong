@@ -18,7 +18,7 @@ The files of `src/` and the conventions of the code.
 | `src/app/touch_view.rs` | draws the d-pad, jump button and pause button |
 | `src/app/game_view.rs` | the game view: fixed-step loop from the frame time, keyboard input, scaled playfield drawing, pause |
 | `src/app/dialogs/` | one file per window (`about.rs`) |
-| `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `player.rs`, `barrel.rs`, `level.rs` (format, parser, validator), `levels.rs` (embedded files), `input.rs`, `rng.rs`, `timestep.rs` (fixed step); later difficulty, progress |
+| `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `player.rs`, `barrel.rs`, `difficulty.rs` (the five steps and their parameter table), `level.rs` (format, parser, validator), `levels.rs` (embedded files), `input.rs`, `rng.rs`, `timestep.rs` (fixed step) |
 | `src/storage.rs` | `Storage` trait + `NullStorage` / `MemoryStorage` (real backends: #11) |
 | `src/audio.rs` | `Audio` trait + `NullAudio` (real backends: #16) |
 | `levels/*.txt` | level data, embedded with `include_str!` (`src/game/levels.rs`); format: `docs/architecture.md` → Level format |

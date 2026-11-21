@@ -82,13 +82,29 @@ browser and is unit-tested.
 One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels`), `bonus` /
 `bonus_drop` / `bonus_every` (seconds), `barrel_every` (seconds), `extra_life` (score),
 `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
-`hammer x y` (all in playfield pixels; ladder ends are girder surface heights). `Level::parse`
+`hammer x y`, `bonus_hammer x y` (extra hammers of the easier difficulties; all in playfield pixels; ladder ends are girder surface heights). `Level::parse`
 reports syntax / range errors as `line N: message` (`ParseError`, line 0 = whole file, e.g. a
 missing key). `Level::validate` checks that start, goal, ape, hammers and ladder ends stand on
 girders (within `SNAP`) and that the goal is reachable from the start by a graph search (girders =
 nodes, intact ladders = edges; jumps are not needed). `levels.rs` embeds the files with
 `include_str!`; the tests parse and validate every embedded file and check that every `levels/*.txt`
 is embedded. A new level: add the file and one line in `FILES`.
+
+### Difficulty (`difficulty.rs`, #10)
+
+`Difficulty` (Relaxed, Easy, Normal, Hard, Insane; serde name = lowercase) and `Params`, one table
+in `Difficulty::params()`: `lives`, `obstacle_speed` (multiplies the barrel speed), `spawn_interval_pct`
+(percent of the level's `barrel_every`), `ladder_chance` (`num` in `den`, drawn as
+`rng.below(den) < num`, so Normal `1/3` consumes the `Rng` exactly as before), `hammer_delta` and
+`score_pct`. `GameState::start(level, seed, difficulty, lives, score)` applies them once, to its own
+copy of the level: `barrel_every`, `bonus`, `bonus_drop` and `extra_life` are scaled, hammers are
+added from the level's `bonus_hammer` lines (Relaxed +2, Easy +1; as many as the level has) or the
+last ones removed (Insane -1, never the last one); `add_score` scales jump / smash points. `lives` /
+`score` carry a game from one level to the next (`None` = full lives of the difficulty); a carried
+score that already earned the extra life does not earn it again. Geometry is never touched. Normal
+is bit-identical to the pre-#10 game (tests). The difficulty of the next level that starts is
+`Config::difficulty` (menu Game -> Difficulty); the running level keeps its numbers.
+The numbers are a first proposal, not tuned by playing yet.
 
 ### Barrels, hammer, scoring (`barrel.rs`, `mod.rs`)
 

@@ -5,6 +5,7 @@
 //! The levels are text files (`levels/*.txt`, parsed by `level.rs`) embedded by `levels.rs`.
 
 mod barrel;
+mod difficulty;
 mod input;
 mod level;
 mod levels;
@@ -13,6 +14,7 @@ mod rng;
 mod timestep;
 
 pub use barrel::{Barrel, BarrelMode};
+pub use difficulty::{Difficulty, Params};
 pub use input::Input;
 pub use level::Level;
 pub use levels::builtin as builtin_level;
@@ -66,6 +68,8 @@ pub enum Status {
     GameOver,
 }
 
+/// Lives of a new game on `Difficulty::Normal`.
+#[cfg(test)]
 pub const START_LIVES: u32 = 3;
 /// Steps the hammer stays in the hand.
 pub const HAMMER_STEPS: u32 = 10 * STEP_HZ;
@@ -99,6 +103,8 @@ pub struct GameState {
     pub lives: u32,
     pub bonus: u32,
     pub status: Status,
+    pub difficulty: Difficulty,
+    params: Params,
     extra_life_given: bool,
     barrel_in: u32,
     bonus_in: u32,
@@ -106,18 +112,55 @@ pub struct GameState {
 }
 
 impl GameState {
+    /// A new game of `level` on `Difficulty::Normal`, with the full lives and no score.
+    #[cfg(test)]
     pub fn new(level: Level, seed: u64) -> Self {
+        Self::start(level, seed, Difficulty::Normal, None, 0)
+    }
+
+    /// The start of `level` on `difficulty`. `lives` is `None` for the full lives of the
+    /// difficulty, `score` is what was carried over from the previous level.
+    pub fn start(
+        mut level: Level,
+        seed: u64,
+        difficulty: Difficulty,
+        lives: Option<u32>,
+        score: u32,
+    ) -> Self {
+        let params = difficulty.params();
+        // The ape's pace, the hammers and every score of the level follow the difficulty.
+        level.barrel_every = level.barrel_every * params.spawn_interval_pct / 100;
+        level.bonus = params.scaled(level.bonus);
+        level.bonus_drop = params.scaled(level.bonus_drop);
+        level.extra_life = params.scaled(level.extra_life);
+        if params.hammer_delta >= 0 {
+            let extra = (params.hammer_delta as usize).min(level.bonus_hammers.len());
+            let bonus = level.bonus_hammers[..extra].to_vec();
+            level.hammers.extend(bonus);
+        } else {
+            // Take hammers away, but never the last one.
+            let keep = level
+                .hammers
+                .len()
+                .saturating_sub(params.hammer_delta.unsigned_abs() as usize)
+                .max(1.min(level.hammers.len()));
+            level.hammers.truncate(keep);
+        }
+        let every = level.extra_life;
         Self {
             tick: 0,
             player: Player::new(level.start),
             barrels: Vec::new(),
             hammers: level.hammers.clone(),
             hammer_left: 0,
-            score: 0,
-            lives: START_LIVES,
+            score,
+            lives: lives.unwrap_or(params.lives),
             bonus: level.bonus,
             status: Status::Playing,
-            extra_life_given: false,
+            difficulty,
+            params,
+            // A carried-over score that already earned the extra life must not earn it twice.
+            extra_life_given: every > 0 && score >= every,
             barrel_in: FIRST_BARREL_STEPS,
             bonus_in: level.bonus_every,
             rng: Rng::new(seed),
@@ -158,7 +201,7 @@ impl GameState {
     }
 
     fn add_score(&mut self, points: u32, events: &mut Vec<Event>) {
-        self.score += points;
+        self.score += self.params.scaled(points);
         let every = self.level.extra_life;
         if every > 0 && !self.extra_life_given && self.score >= every {
             self.extra_life_given = true;
@@ -208,7 +251,7 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
         state.barrel_in = state.level.barrel_every;
     }
     for b in &mut state.barrels {
-        b.step(&state.level.geometry, &mut state.rng);
+        b.step(&state.level.geometry, &mut state.rng, &state.params);
     }
     state.barrels.retain(|b| !b.is_gone());
 
@@ -549,5 +592,61 @@ mod tests {
         // They reach the floor (y ~ 240-248) and fall out at its low end; never pile up.
         assert!(lowest > 235.0, "lowest {lowest}");
         assert!((3..=14).contains(&max_alive), "max alive {max_alive}");
+    }
+
+    #[test]
+    fn the_difficulty_sets_lives_pace_hammers_and_scores() {
+        let start = |d| GameState::start(level(), 1, d, None, 0);
+        let normal = start(Difficulty::Normal);
+        assert_eq!(normal.lives, START_LIVES);
+        assert_eq!(normal.level.barrel_every, level().barrel_every);
+        assert_eq!(normal.hammers.len(), 2);
+        assert_eq!(normal.bonus, level().bonus);
+
+        let relaxed = start(Difficulty::Relaxed);
+        assert_eq!(relaxed.lives, 7);
+        assert!(relaxed.level.barrel_every > normal.level.barrel_every);
+        assert_eq!(relaxed.hammers.len(), 4); // two of the level's own, two bonus ones
+        assert_eq!(relaxed.bonus, level().bonus / 2);
+
+        assert_eq!(start(Difficulty::Easy).hammers.len(), 3);
+        assert_eq!(start(Difficulty::Hard).hammers.len(), 2);
+        let insane = start(Difficulty::Insane);
+        assert_eq!((insane.lives, insane.hammers.len()), (2, 1));
+        assert!(insane.level.barrel_every < normal.level.barrel_every);
+        assert_eq!(insane.bonus, level().bonus * 2);
+    }
+
+    #[test]
+    fn points_follow_the_score_multiplier() {
+        let mut s = GameState::start(level(), 1, Difficulty::Easy, None, 0);
+        let mut ev = Vec::new();
+        s.add_score(SCORE_SMASH, &mut ev);
+        assert_eq!(s.score, 225); // 300 * 0.75
+    }
+
+    #[test]
+    fn a_carried_over_score_keeps_lives_and_does_not_repeat_the_extra_life() {
+        let every = level().extra_life;
+        let mut s = GameState::start(level(), 1, Difficulty::Normal, Some(2), every + 10);
+        assert_eq!((s.lives, s.score), (2, every + 10));
+        let mut ev = Vec::new();
+        s.add_score(100, &mut ev);
+        assert_eq!(s.lives, 2);
+        assert!(ev.is_empty());
+    }
+
+    /// The same seed gives a different game on another difficulty, and the same one twice.
+    #[test]
+    fn difficulty_is_deterministic() {
+        let go = |d| {
+            let mut s = GameState::start(level(), 5, d, None, 0);
+            for _ in 0..600 {
+                step(&mut s, &Input::default());
+            }
+            s.barrels.iter().map(|b| (b.x, b.y)).collect::<Vec<_>>()
+        };
+        assert_eq!(go(Difficulty::Hard), go(Difficulty::Hard));
+        assert_ne!(go(Difficulty::Hard), go(Difficulty::Relaxed));
     }
 }

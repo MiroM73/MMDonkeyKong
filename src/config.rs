@@ -8,6 +8,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::game::Difficulty;
+
 /// The settings folder (`%APPDATA%\MMDonkeyKong`). There is none in the browser: the settings
 /// are not stored there yet (the browser storage backend comes with issue #11).
 pub fn config_dir() -> Option<PathBuf> {
@@ -34,6 +36,8 @@ pub struct Config {
     pub left_handed: bool,
     /// Vibrate when the hero dies (browsers that support it, i.e. phones).
     pub vibration: bool,
+    /// The difficulty of the next level that starts (Game -> Difficulty).
+    pub difficulty: Difficulty,
 }
 
 impl Default for Config {
@@ -46,6 +50,7 @@ impl Default for Config {
             touch_size: 1.0,
             left_handed: false,
             vibration: true,
+            difficulty: Difficulty::Normal,
         }
     }
 }
