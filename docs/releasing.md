@@ -22,5 +22,16 @@ How the Windows release archives are built and published (maintainer information
   *What's fixed*, *Removed*, then the *Full Changelog* link) from `docs/history.md` and
   `git log v<prev>..v<new>`: `gh release edit v<version> --notes-file <file>`.
 
+## The web version (GitHub Pages)
+
+`.github/workflows/pages.yml` builds the browser version with Trunk (a prebuilt, checksum-verified
+Trunk binary, pinned in the workflow) and deploys it to <https://mirom73.github.io/MMDonkeyKong/>
+on **every push to `master`** (not tied to the Windows releases). One-time setting by the owner:
+repository Settings -> Pages -> Source = "GitHub Actions". The URL path is case-sensitive
+(`/MMDonkeyKong/`, passed to `trunk build --public-url`). To update the pinned Trunk, change
+`TRUNK_VERSION` and `TRUNK_SHA256` (the `.sha256` file of the release asset) in `pages.yml` and in
+the `web` job of `ci.yml`. CI (`ci.yml`, job `web`) checks clippy for wasm32 and a Trunk build on
+every push and pull request, so a broken web build is found before the deployment.
+
 When the program ships more files than the exe (language files, data files), add them to
 `scripts\package.ps1`.

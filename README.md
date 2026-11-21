@@ -11,6 +11,9 @@
 An original single-player arcade platformer in the spirit of the classic 1981 ape-and-barrels cabinet: climb ladders, jump over rolling barrels, grab the hammer, reach the top. Written in Rust (egui/eframe); the same code runs **in a web browser** (PC, tablet, phone, hosted on GitHub Pages) and **offline as a Windows exe**. _Work in progress: the game is being designed, see the [game design](docs/game-design.md) and the [roadmap](docs/roadmap.md)._
 
 [![CI](https://github.com/MiroM73/MMDonkeyKong/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/MiroM73/MMDonkeyKong/actions/workflows/ci.yml)
+[![Pages](https://github.com/MiroM73/MMDonkeyKong/actions/workflows/pages.yml/badge.svg?branch=master)](https://github.com/MiroM73/MMDonkeyKong/actions/workflows/pages.yml)
+
+**Play in the browser:** <https://mirom73.github.io/MMDonkeyKong/> (rebuilt on every push to `master`)
 
 ## At a glance
 

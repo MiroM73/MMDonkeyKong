@@ -29,6 +29,8 @@ What was done when (one line per issue / release) and the open ideas of the owne
 - 2026-11-21: #3 browser build: wasm32 target with Trunk (`index.html`, `Trunk.toml`), `main.rs`
   split into desktop / wasm entry points (`native.rs`), desktop-only code behind `cfg`, frame time from
   egui instead of `Instant`.
+- 2026-11-21: #4 GitHub Pages: `pages.yml` deploys the Trunk build on every push to `master`,
+  CI job `web` (clippy wasm32 + Trunk build), README play link and badge.
 
 ## Open ideas
 

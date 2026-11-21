@@ -1,0 +1,65 @@
+# Builds the browser version (wasm32 + Trunk) and publishes it on GitHub Pages:
+# https://mirom73.github.io/MMDonkeyKong/
+# Runs on every push to master (and manually). One-time setting in the repository:
+# Settings -> Pages -> Source = "GitHub Actions".
+name: Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push replaces a deployment that is still waiting.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  TRUNK_VERSION: v0.22.2
+  # SHA-256 of trunk-x86_64-unknown-linux-gnu.tar.gz of that release.
+  TRUNK_SHA256: 26fca8a9952e46cd7d8b8b9a2e2c1786c090fc14b8e10b6678ab4d0f9f1a385f
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Update Rust toolchain
+        run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      # A prebuilt Trunk: `cargo install trunk` takes about 9 minutes.
+      - name: Install Trunk
+        run: |
+          curl -sSfL -o trunk.tar.gz "https://github.com/trunk-rs/trunk/releases/download/${TRUNK_VERSION}/trunk-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${TRUNK_SHA256}  trunk.tar.gz" | sha256sum -c -
+          tar -xzf trunk.tar.gz trunk
+          sudo mv trunk /usr/local/bin/trunk
+          trunk --version
+
+      # The public URL is case-sensitive: the repository is MMDonkeyKong.
+      - name: Build
+        run: trunk build --release --public-url "/MMDonkeyKong/"
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

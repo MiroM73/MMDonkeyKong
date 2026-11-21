@@ -31,11 +31,11 @@ and browser problems are found early, not at the end.
 | 01 | Turn the template into a game window: playfield with logical resolution, scaling, fixed-step loop, pause | done |
 | 02 | Platform-independent `game` module skeleton + `Input` / `Storage` / `Audio` traits | done |
 
-## Phase 2 – browser build (early, so every later step is tested there too)
+## Phase 2 – browser build (done, not released yet; early, so every later step is tested there too)
 | Issue | What | Status |
 |-------|------|--------|
 | 03 | wasm32 build with Trunk, `cfg`-gate native-only code, local `trunk serve` | done |
-| 04 | GitHub Pages deployment workflow (every push to `master`) + CI `wasm` job | open |
+| 04 | GitHub Pages deployment workflow (every push to `master`) + CI `wasm` job | done (verify the first deployment after the push) |
 
 ## Phase 3 – first playable level
 | Issue | What | Status |

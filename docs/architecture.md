@@ -24,6 +24,13 @@ time (`now`), because `std::time::Instant` panics in the browser. `index.html` s
 `touch-action: none`, `overscroll-behavior: none`, a no-zoom viewport and a full-screen canvas so
 a touch screen does not scroll or zoom the page while playing.
 
+## Web deployment
+
+`pages.yml` (push to `master`): Ubuntu runner, Rust + `wasm32-unknown-unknown`, prebuilt Trunk
+(version + SHA-256 pinned in the workflow), `trunk build --release --public-url "/MMDonkeyKong/"`,
+`actions/upload-pages-artifact` of `dist/`, `actions/deploy-pages`. The `web` job of `ci.yml` runs
+the same build plus clippy for wasm32 on every push / pull request.
+
 ## Renderer and refresh frames
 
 OpenGL (glow) is the default; when it cannot start (also a panic before the app exists) the

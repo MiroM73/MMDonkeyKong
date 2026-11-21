@@ -1,6 +1,7 @@
 # Checks every push to master and every pull request:
 # - Windows (the main platform): formatting, clippy, tests and a release build uploaded as an artifact
 # - Linux: clippy and tests, so the non-Windows build keeps working
+# - Web: clippy for wasm32 and a Trunk build, so the browser version cannot rot
 name: CI
 
 on:
@@ -60,3 +61,29 @@ jobs:
 
       - name: Test
         run: cargo test --locked
+
+  web:
+    runs-on: ubuntu-latest
+    env:
+      TRUNK_VERSION: v0.22.2
+      TRUNK_SHA256: 26fca8a9952e46cd7d8b8b9a2e2c1786c090fc14b8e10b6678ab4d0f9f1a385f
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Update Rust toolchain
+        run: rustup update stable && rustup default stable && rustup component add clippy && rustup target add wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Clippy (wasm32)
+        run: cargo clippy --target wasm32-unknown-unknown --locked -- -D warnings
+
+      - name: Install Trunk
+        run: |
+          curl -sSfL -o trunk.tar.gz "https://github.com/trunk-rs/trunk/releases/download/${TRUNK_VERSION}/trunk-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${TRUNK_SHA256}  trunk.tar.gz" | sha256sum -c -
+          tar -xzf trunk.tar.gz trunk
+          sudo mv trunk /usr/local/bin/trunk
+
+      - name: Build (Trunk)
+        run: trunk build --release --public-url "/MMDonkeyKong/"
