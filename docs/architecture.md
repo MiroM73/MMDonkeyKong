@@ -52,7 +52,8 @@ browser and is unit-tested.
 
 - `GameState` + `step(&mut state, &Input) -> Vec<Event>`: one fixed step. `Input` holds the held
   directions, `jump_held` and the edge `jump_pressed`. `GameState` holds a `Geometry` and the
-  `Player`; the geometry is `demo_geometry()` (a test level drawn as lines) until the levels (#6).
+  `Level` (geometry, start, ape, goal, hammers, timings), the `Player`, the `Barrel`s, score, lives,
+  time bonus and `Status` (`Playing` / `Complete` / `GameOver`; `step` does nothing otherwise).
 - `Player` (`player.rs`, #5): `step(&Input, &Geometry) -> Option<PlayerEvent>`. `x` / `y` = middle of
   the feet, y down, f32 (IEEE basic ops only, so deterministic). `Mode`: `Walking`, `Climbing`,
   `Airborne {vx, vy, top}`, `Dead {left}`. Walking: x moves 1 px / step and the feet snap to the
@@ -76,7 +77,34 @@ browser and is unit-tested.
   backends come with #16 and #11. Until the front end uses them, their `mod` lines in `main.rs`
   carry `#[allow(dead_code)]` with that reason.
 
-Planned (see `docs/game-design.md`, `docs/platforms.md`): levels parsed from `levels/*.txt`.
+### Level format (`level.rs`, `levels.rs`, `levels/*.txt`, #6)
+
+One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels`), `bonus` /
+`bonus_drop` / `bonus_every` (seconds), `barrel_every` (seconds), `extra_life` (score),
+`start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
+`hammer x y` (all in playfield pixels; ladder ends are girder surface heights). `Level::parse`
+reports syntax / range errors as `line N: message` (`ParseError`, line 0 = whole file, e.g. a
+missing key). `Level::validate` checks that start, goal, ape, hammers and ladder ends stand on
+girders (within `SNAP`) and that the goal is reachable from the start by a graph search (girders =
+nodes, intact ladders = edges; jumps are not needed). `levels.rs` embeds the files with
+`include_str!`; the tests parse and validate every embedded file and check that every `levels/*.txt`
+is embedded. A new level: add the file and one line in `FILES`.
+
+### Barrels, hammer, scoring (`barrel.rs`, `mod.rs`)
+
+The ape throws a barrel every `barrel_every` (the first after 1 s; a respawn clears the barrels and
+restarts the timer). A barrel rolls 0.8 px / step downhill along its girder (flat girder: keeps the
+throw direction); when it crosses the x of an intact ladder whose top is at its height, one in
+three (from the seeded `Rng`) climbs down; at a girder end it falls (0.5 px / step outwards, gravity,
+swept landing) onto the girder below and leaves the field at the bottom. The barrel box is 8 x 8.
+A barrel touching the player's box kills (`Player::kill`, one life). Hammer: touching an item on the
+ground gives 10 s (`HAMMER_STEPS`); meanwhile up / down / jump are ignored and barrels inside the
+box stretched 12 px in front of the player are smashed (+300). A jump whose feet pass up to 14 px
+above a barrel (within 6 px horizontally) scores +100 once per barrel. The time bonus loses
+`bonus_drop` every `bonus_every` and is added to the score at the goal. One extra life when the
+score reaches `extra_life`. Lives: 3; losing the last one ends the game after the death animation
+(`GameOver`). The view restarts with Enter / R (a game over resets the score; after a completed
+level the same level is replayed until the level select, #12).
 
 ## Game view (`src/app/game_view.rs`)
 

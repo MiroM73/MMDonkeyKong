@@ -33,6 +33,10 @@ What was done when (one line per issue / release) and the open ideas of the owne
   CI job `web` (clippy wasm32 + Trunk build), README play link and badge.
 - 2026-11-21: #5 Player physics in `src/game/player.rs`: slopes, ladders, fixed-arc jump, swept landing,
   fall limit, forgiving hitbox, death and respawn; the view draws a demo level with the player.
+- 2026-11-21: #6 Level format (`levels/*.txt`, `src/game/level.rs`: parser with line-numbered errors +
+  validator with a goal-reachability search), the first level "Barrels", rolling barrels
+  (`barrel.rs`), hammer, jump-over / smash score, time bonus, extra life, lives, level complete /
+  game over (Enter / R restarts); the view draws the level, barrels, hammers, ape, goal and a HUD.
 
 ## Open ideas
 

@@ -57,7 +57,7 @@ impl App {
             last_save: cc.egui_ctx.input(|i| i.time),
             now: cc.egui_ctx.input(|i| i.time),
             show_about: false,
-            // Fixed seed: the placeholder game has nothing random yet (levels: issue #6).
+            // Fixed seed for the first game; a restart (Enter / R) uses the frame time.
             game: GameSession::new(1),
             status_info: None,
         };

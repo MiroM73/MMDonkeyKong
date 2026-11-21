@@ -1,0 +1,43 @@
+# Level 1 - Barrels. One "key: values" per line, '#' starts a comment.
+# Coordinates are playfield pixels (224 x 256, y grows downwards); girder and ladder ends
+# are surface heights. See docs/architecture.md -> Level format.
+name: Barrels
+type: barrels
+
+# Time bonus: starts at `bonus`, loses `bonus_drop` every `bonus_every` seconds, is added on completion.
+bonus: 5000
+bonus_drop: 100
+bonus_every: 2
+# The ape throws a barrel every `barrel_every` seconds.
+barrel_every: 3
+# Extra life at this score.
+extra_life: 7000
+
+start: 20 247.3
+ape: 20 60
+goal: 70 60
+
+# girder: x0 y0 x1 y1   (x0 < x1)
+girder: 0 248 224 240
+girder: 0 204 196 212
+girder: 28 176 224 168
+girder: 0 132 196 140
+girder: 28 100 224 92
+girder: 0 60 130 60
+
+# ladder: x top bottom [broken]
+ladder: 190 211.8 241.2
+ladder: 110 208.5 244.1
+ladder: 70 206.9 245.5 broken
+ladder: 40 175.5 205.6
+ladder: 150 171.0 210.1
+ladder: 180 139.3 169.8
+ladder: 90 135.7 173.5
+ladder: 130 137.3 171.8 broken
+ladder: 40 99.5 133.6
+ladder: 120 96.2 136.9
+ladder: 110 60.0 96.7
+
+# hammer: x y
+hammer: 100 173.1
+hammer: 150 95.0

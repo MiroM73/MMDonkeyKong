@@ -56,9 +56,9 @@ Adding a level must not require touching the game loop.
 
 Creating new levels has to be cheap, so levels are produced in three ways that share one format:
 
-1. **Hand-written** `levels/*.txt` – readable ASCII grid (one character per tile: girder, ladder,
-   broken ladder, hammer, goal, ape, start, rivet, conveyor left / right, lift) plus a header with
-   name, type, time bonus and spawn timings. Easy to edit in any text editor and to diff in git.
+1. **Hand-written** `levels/*.txt` – readable `key: values` lines (girders and ladders as
+   coordinates, because the girders are sloped; hammers, goal, ape, start, time bonus, spawn
+   timings; see `docs/architecture.md` → Level format). Easy to edit in any text editor and to diff in git.
 2. **Generated** – a pure function `generate(type, seed, size_hint) -> Level` (module
    `game::levelgen`) builds a valid level from a seed: stacked sloped girders with alternating
    direction, ladders placed so that every girder is reachable, hammers and hazards by the level

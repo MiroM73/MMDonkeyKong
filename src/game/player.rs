@@ -71,7 +71,7 @@ pub struct Geometry {
 impl Geometry {
     /// The girder under (`x`, `y`) whose surface is nearest to `y` while not more than `SNAP`
     /// above it and `SNAP` below it; returns the surface height.
-    fn ground_near(&self, x: f32, y: f32) -> Option<f32> {
+    pub(super) fn ground_near(&self, x: f32, y: f32) -> Option<f32> {
         self.girders
             .iter()
             .filter_map(|g| g.y_at(x))
@@ -80,7 +80,7 @@ impl Geometry {
     }
 
     /// First surface crossed when moving from height `from` to `to` (`from <= to`) at `x`.
-    fn landing(&self, x: f32, from: f32, to: f32) -> Option<f32> {
+    pub(super) fn landing(&self, x: f32, from: f32, to: f32) -> Option<f32> {
         self.girders
             .iter()
             .filter_map(|g| g.y_at(x))
@@ -114,7 +114,6 @@ pub enum PlayerEvent {
     Landed,
     /// Died by a fall (landed too far below the highest point).
     FellToDeath,
-    #[allow(dead_code)] // produced by `kill`, used by hazards (#6)
     /// Killed from outside (`Player::kill`).
     Killed,
     Respawned,
@@ -146,6 +145,14 @@ impl Player {
         matches!(self.mode, Mode::Dead { .. })
     }
 
+    pub fn is_walking(&self) -> bool {
+        matches!(self.mode, Mode::Walking)
+    }
+
+    pub fn is_airborne(&self) -> bool {
+        matches!(self.mode, Mode::Airborne { .. })
+    }
+
     /// Small, forgiving hitbox: narrower than the sprite, a bit lower than its head.
     pub fn hitbox(&self) -> Rect {
         Rect {
@@ -156,13 +163,11 @@ impl Player {
         }
     }
 
-    #[allow(dead_code)] // hazards (#6)
     /// Does `hazard` (already shrunk by the caller if it wants to be forgiving) touch the player?
     pub fn hit_by(&self, hazard: Rect) -> bool {
         !self.is_dead() && self.hitbox().overlaps(hazard)
     }
 
-    #[allow(dead_code)] // hazards (#6)
     /// Kills the player (barrel, fireball, ...); no effect when already dead.
     pub fn kill(&mut self) -> Option<PlayerEvent> {
         if self.is_dead() {
