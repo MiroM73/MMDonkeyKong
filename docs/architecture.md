@@ -8,7 +8,7 @@ change of the feature. Never read this file whole – grep the heading (see `CLA
 ## UI basics
 
 `main.rs` loads the settings, sets the language and starts eframe. `app::App::ui` is the frame
-loop: menu panel, status panel, central panel, then the windows (About), then a delayed write of
+loop: menu panel, status panel, central panel (the game view), then the windows (About), then a delayed write of
 changed settings. The program repaints only on input or when a timer is pending
 (`request_repaint_after`), so an idle window costs no CPU.
 
@@ -44,8 +44,27 @@ browser and is unit-tested.
   backends come with #16 and #11. Until the front end uses them, their `mod` lines in `main.rs`
   carry `#[allow(dead_code)]` with that reason.
 
-Planned (see `docs/game-design.md`, `docs/platforms.md`): levels parsed from `levels/*.txt`,
-`src/app/` as the egui front end (painter drawing, input collection incl. touch).
+Planned (see `docs/game-design.md`, `docs/platforms.md`): levels parsed from `levels/*.txt`.
+
+## Game view (`src/app/game_view.rs`)
+
+The central panel (no frame) is the game. `GameSession` (state, `FixedStep`, `paused`,
+`jump_latch`) lives in `App`. Per frame: `handle_pause` (Esc / P toggle, click on the view toggles,
+losing the window focus pauses - `InputState::focused`), then, when not paused, `run_steps`:
+the keyboard is read once (`read_input`: arrows / WASD, Space), `jump_latch` remembers a Space
+press until a step consumes it (a frame without a step does not lose it, a frame with two steps
+delivers it once), `FixedStep::advance(unstable_dt)` says how many 60 Hz steps to run, and
+`ctx.request_repaint()` keeps the game going. A paused game requests no repaint (idle CPU); the
+frame time comes from egui, not `std::time`, so the same code works in the browser.
+
+Drawing: the 224 x 256 playfield is scaled by `field_scale` - the largest whole number of
+**physical** pixels that fits (crisp pixel art at any DPI), a fraction only when the area is
+smaller than the field - centred and snapped to whole physical pixels; the rest is letter-box.
+The status bar shows the key hint. Hiding the menu on touch screens is part of #8.
+
+After a pause the first frame's time (the whole pause) is dropped (`skip_dt`). Click-to-pause on the
+whole view is a desktop convenience; #8 must replace it with a pause button, because on a touch
+screen the d-pad and jump taps would toggle the pause.
 
 ## Tests
 

@@ -25,11 +25,6 @@ impl Rng {
         debug_assert!(n > 0);
         ((self.next_u64() >> 32) % u64::from(n.max(1))) as u32
     }
-
-    /// `true` with the probability `percent` / 100.
-    pub fn chance(&mut self, percent: u32) -> bool {
-        self.below(100) < percent
-    }
 }
 
 #[cfg(test)]

@@ -23,6 +23,9 @@ What was done when (one line per issue / release) and the open ideas of the owne
   pushed yet) and issues #1-#25 created from `docs/issues/`.
 - 2026-11-21: #2 game core skeleton: `src/game/` (state, `step`, `Input`, `Event`, seeded `Rng`,
   `FixedStep`), `Storage` and `Audio` traits with null implementations.
+- 2026-11-21: #1 game window: the central panel is the game (224 x 256 playfield, integer scaling in
+  physical pixels, 60 Hz fixed step from the frame time, keyboard, pause on Esc / P / click / lost
+  focus, no repaint while paused). Placeholder marker moves with the arrow keys.
 
 ## Open ideas
 

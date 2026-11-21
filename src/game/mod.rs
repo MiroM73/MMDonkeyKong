@@ -10,8 +10,7 @@ mod timestep;
 
 pub use input::Input;
 pub use rng::Rng;
-#[allow(unused_imports)] // used by the front end from issue #1 on
-pub use timestep::{FixedStep, STEP_HZ};
+pub use timestep::FixedStep;
 
 /// Logical playfield size in pixels; the front end scales it to the screen.
 pub const FIELD_W: i32 = 224;

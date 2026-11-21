@@ -9,6 +9,7 @@ The files of `src/` and the conventions of the code.
 | `src/main.rs` | window start-up, renderer choice (OpenGL, wgpu fallback with DX12 preference) |
 | `src/app/mod.rs` | the `App` struct, helper types / consts, `App::new`, the frame loop (`eframe::App::ui`) |
 | `src/app/menu.rs` | menu bar: File, View (theme, language), Help |
+| `src/app/game_view.rs` | the game view: fixed-step loop from the frame time, keyboard input, scaled playfield drawing, pause |
 | `src/app/dialogs/` | one file per window (`about.rs`) |
 | `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `input.rs`, `rng.rs`, `timestep.rs` (fixed step); later levels, difficulty, progress |
 | `src/storage.rs` | `Storage` trait + `NullStorage` / `MemoryStorage` (real backends: #11) |

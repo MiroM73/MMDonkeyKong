@@ -9,6 +9,7 @@
 //! - keep files under ~800 lines.
 
 mod dialogs;
+mod game_view;
 mod menu;
 
 use std::time::{Duration, Instant};
@@ -17,6 +18,7 @@ use eframe::egui;
 
 use crate::config::Config;
 use crate::{i18n, t};
+use game_view::GameSession;
 
 /// How often changed settings are written to disk at most.
 const SAVE_INTERVAL: Duration = Duration::from_secs(2);
@@ -36,6 +38,7 @@ pub struct App {
     /// Code of the language in use, e.g. "sk".
     lang_code: String,
     show_about: bool,
+    game: GameSession,
     /// A message for the status bar (text, since when); cleared after a few seconds.
     status_info: Option<(String, Instant)>,
 }
@@ -49,6 +52,8 @@ impl App {
             cfg_dirty: false,
             last_save: Instant::now(),
             show_about: false,
+            // Fixed seed: the placeholder game has nothing random yet (levels: issue #6).
+            game: GameSession::new(1),
             status_info: None,
         };
         app.apply_theme(&cc.egui_ctx);
@@ -116,12 +121,14 @@ impl eframe::App for App {
             {
                 self.status_info = None;
             }
-            ui.label(self.status_info.as_ref().map_or("", |(s, _)| s.as_str()));
+            match &self.status_info {
+                Some((s, _)) => ui.label(s.as_str()),
+                None => ui.label(t!("game.hint")),
+            };
         });
-        egui::CentralPanel::default().show(ui, |ui| {
-            ui.heading(t!("app.name"));
-            ui.label(t!("app.hello"));
-        });
+        egui::CentralPanel::default()
+            .frame(egui::Frame::NONE)
+            .show(ui, |ui| self.game_ui(ui));
 
         self.about_window(&ctx);
         self.save_config(false);

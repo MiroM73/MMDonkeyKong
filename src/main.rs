@@ -5,12 +5,11 @@
 )]
 
 mod app;
-// The audio / storage traits and the game module are not used by the front end yet (issues #1,
-// #11, #16); each allow is removed when its module is wired in.
+// The audio / storage traits are not used by the front end yet (issues #11, #16); each allow is
+// removed when its module is wired in.
 #[allow(dead_code)]
 mod audio;
 mod config;
-#[allow(dead_code)]
 mod game;
 mod i18n;
 mod icon;
