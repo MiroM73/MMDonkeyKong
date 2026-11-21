@@ -129,6 +129,9 @@ impl App {
             // no next level yet (#12), so the same one is replayed.
             // The frame time makes every new game differ (a fixed seed would repeat the barrels).
             self.game = GameSession::new(ctx.input(|i| (i.time * 1000.0) as u64));
+            // A finished game requests no repaints, so this frame's time is the whole idle wait
+            // (it would look like a stall and pause the new game): drop it.
+            self.game.skip_dt = true;
         }
         self.handle_pause(&ctx);
         if !self.game.is_paused() && self.game.state.status == Status::Playing {
