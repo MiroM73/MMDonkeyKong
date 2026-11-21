@@ -12,11 +12,11 @@ mod player;
 mod rng;
 mod timestep;
 
-pub use barrel::Barrel;
+pub use barrel::{Barrel, BarrelMode};
 pub use input::Input;
 pub use level::Level;
 pub use levels::builtin as builtin_level;
-pub use player::{Geometry, Girder, Ladder, Player, PlayerEvent};
+pub use player::{Geometry, Girder, Ladder, Mode, Player, PlayerEvent};
 pub use rng::Rng;
 pub use timestep::{FixedStep, STEP_HZ};
 
@@ -79,6 +79,8 @@ const HAMMER_REACH: f32 = 12.0;
 /// How far above a barrel the feet must pass (and how close horizontally) to count as a jump over.
 const JUMP_OVER_HEIGHT: f32 = 14.0;
 const JUMP_OVER_HALF_W: f32 = 6.0;
+/// Steps the ape shows the throwing pose after a barrel left.
+const APE_THROW_STEPS: u32 = 15;
 const GOAL_HALF_W: f32 = 8.0;
 const GOAL_HEIGHT: f32 = 16.0;
 
@@ -131,6 +133,12 @@ impl GameState {
             x1: x + GOAL_HALF_W,
             y1: y,
         }
+    }
+
+    /// The ape has just thrown a barrel (for its animation).
+    pub fn ape_throwing(&self) -> bool {
+        let every = self.level.barrel_every;
+        self.barrel_in <= every && self.barrel_in + APE_THROW_STEPS > every
     }
 
     /// The area the swung hammer covers: the player's box stretched in front of it.
@@ -373,6 +381,18 @@ mod tests {
         let every = s.level.barrel_every as usize;
         idle(&mut s, every);
         assert_eq!(s.barrels.len(), 2);
+    }
+
+    #[test]
+    fn the_ape_shows_the_throw_only_right_after_a_barrel() {
+        let mut s = state(1);
+        s.player.mode = Mode::Dead { left: u32::MAX };
+        idle(&mut s, FIRST_BARREL_STEPS as usize - 1);
+        assert!(!s.ape_throwing());
+        idle(&mut s, 1);
+        assert!(s.ape_throwing());
+        idle(&mut s, APE_THROW_STEPS as usize);
+        assert!(!s.ape_throwing());
     }
 
     /// A state with the player standing on the floor and a barrel placed right at it.

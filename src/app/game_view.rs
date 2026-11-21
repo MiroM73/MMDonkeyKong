@@ -1,21 +1,16 @@
 //! The game view: runs the fixed-step simulation from the frame time, collects the keyboard
 //! input, draws the playfield scaled to the available area, handles pause.
 
+use crate::app::scene::{self, Effect, Look, View};
 use crate::app::*;
-use crate::game::{self, FIELD_H, FIELD_W, FixedStep, GameState, Input, Status, builtin_level};
+use crate::game::{
+    self, Event, FIELD_H, FIELD_W, FixedStep, GameState, Input, Status, builtin_level,
+};
 
 const LETTERBOX: egui::Color32 = egui::Color32::from_rgb(8, 8, 14);
 const FIELD_BG: egui::Color32 = egui::Color32::from_rgb(18, 20, 48);
 const FIELD_BORDER: egui::Color32 = egui::Color32::from_rgb(200, 60, 60);
-const MARKER: egui::Color32 = egui::Color32::from_rgb(250, 210, 60);
-const BARREL: egui::Color32 = egui::Color32::from_rgb(200, 130, 60);
-const HAMMER: egui::Color32 = egui::Color32::from_rgb(240, 240, 240);
-const GOAL: egui::Color32 = egui::Color32::from_rgb(120, 230, 120);
-const APE: egui::Color32 = egui::Color32::from_rgb(160, 100, 200);
 const HUD: egui::Color32 = egui::Color32::from_rgb(235, 235, 235);
-const MARKER_DEAD: egui::Color32 = egui::Color32::from_rgb(220, 60, 60);
-const GIRDER: egui::Color32 = egui::Color32::from_rgb(200, 70, 90);
-const LADDER: egui::Color32 = egui::Color32::from_rgb(90, 200, 230);
 /// A frame that took longer than this (hidden browser tab, computer sleep, window drag) pauses
 /// the game instead of silently continuing.
 const STALL_PAUSE_SECS: f32 = 0.5;
@@ -30,6 +25,12 @@ pub(in crate::app) struct GameSession {
     jump_latch: bool,
     /// The first frame after a pause: its frame time contains the whole pause, so it is dropped.
     skip_dt: bool,
+    /// The static background of the level (girders, ladders), built on first draw.
+    background: Option<egui::TextureHandle>,
+    /// Smash explosions on the field.
+    effects: Vec<Effect>,
+    /// The hero moved in the last step (walk animation).
+    hero_moving: bool,
 }
 
 impl GameSession {
@@ -40,6 +41,9 @@ impl GameSession {
             paused: false,
             jump_latch: false,
             skip_dt: false,
+            background: None,
+            effects: Vec::new(),
+            hero_moving: false,
         }
     }
 
@@ -114,8 +118,24 @@ impl App {
         };
         for _ in 0..self.game.stepper.advance(dt) {
             input.jump_pressed = std::mem::take(&mut self.game.jump_latch);
-            for _event in game::step(&mut self.game.state, &input) {
+            let (px, py) = (self.game.state.player.x, self.game.state.player.y);
+            let events = game::step(&mut self.game.state, &input);
+            let p = &self.game.state.player;
+            self.game.hero_moving = p.x != px || p.y != py;
+            for e in &mut self.game.effects {
+                e.age += 1;
+            }
+            self.game.effects.retain(|e| e.age < scene::EXPLOSION_STEPS);
+            for event in events {
                 // Sounds follow with issue #16.
+                if event == Event::Smash {
+                    let r = self.game.state.hammer_rect();
+                    self.game.effects.push(Effect {
+                        x: (r.x0 + r.x1) / 2.0,
+                        y: (r.y0 + r.y1) / 2.0,
+                        age: 0,
+                    });
+                }
             }
         }
     }
@@ -173,68 +193,26 @@ impl App {
             egui::Stroke::new(scale / ppp, FIELD_BORDER),
             egui::StrokeKind::Inside,
         );
-        // Placeholder drawing until the pixel-art renderer (#7).
         let st = &self.game.state;
-        let line = scale / ppp;
-        for g in &st.level.geometry.girders {
-            painter.line_segment(
-                [to_screen(g.x0, g.y0), to_screen(g.x1, g.y1)],
-                egui::Stroke::new(line * 2.0, GIRDER),
+        let background = self.game.background.get_or_insert_with(|| {
+            let image = egui::ColorImage::new(
+                [FIELD_W as usize, FIELD_H as usize],
+                scene::render_background(&st.level.geometry),
             );
-        }
-        for l in &st.level.geometry.ladders {
-            let c = if l.broken { GIRDER } else { LADDER };
-            painter.line_segment(
-                [to_screen(l.x, l.top), to_screen(l.x, l.bottom)],
-                egui::Stroke::new(line * 2.0, c),
-            );
-        }
-        let rect =
-            |r: game::Rect| egui::Rect::from_min_max(to_screen(r.x0, r.y0), to_screen(r.x1, r.y1));
-        painter.rect_filled(rect(st.goal_rect()), 0.0, GOAL);
-        let (ax, ay) = st.level.ape;
-        painter.rect_filled(
-            rect(game::Rect {
-                x0: ax - 10.0,
-                y0: ay - 24.0,
-                x1: ax + 10.0,
-                y1: ay,
-            }),
-            0.0,
-            APE,
-        );
-        for &(x, y) in &st.hammers {
-            painter.rect_filled(
-                rect(game::Rect {
-                    x0: x - 4.0,
-                    y0: y - 8.0,
-                    x1: x + 4.0,
-                    y1: y,
-                }),
-                0.0,
-                HAMMER,
-            );
-        }
-        for b in &st.barrels {
-            painter.rect_filled(rect(b.rect()), 0.0, BARREL);
-        }
-        painter.rect_filled(
-            rect(st.player.hitbox()),
-            0.0,
-            if st.player.is_dead() {
-                MARKER_DEAD
-            } else {
-                MARKER
-            },
-        );
-        if st.hammer_left > 0 {
-            painter.rect_stroke(
-                rect(st.hammer_rect()),
-                0.0,
-                egui::Stroke::new(line, HAMMER),
-                egui::StrokeKind::Middle,
-            );
-        }
+            ctx.load_texture("background", image, egui::TextureOptions::NEAREST)
+        });
+        let view = View {
+            painter: &painter,
+            origin,
+            unit: scale / ppp,
+        };
+        let look = Look {
+            sprites: &self.sprites,
+            background,
+            effects: &self.game.effects,
+            hero_moving: self.game.hero_moving,
+        };
+        scene::draw_scene(&view, st, &look);
         let hud = egui::FontId::monospace(8.0 * scale / ppp);
         painter.text(
             to_screen(4.0, 2.0),

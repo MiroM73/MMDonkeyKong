@@ -42,7 +42,7 @@ and browser problems are found early, not at the end.
 |-------|------|--------|
 | 05 | Player physics: platforms, slopes, ladders, jump, death, tests | done |
 | 06 | Level format + parser + first level "Barrels" (barrels, hammer, goal, score, time bonus) | done |
-| 07 | Pixel-art rendering in code (hero, ape, barrels, girders, ladders) | open |
+| 07 | Pixel-art rendering in code (hero, ape, barrels, girders, ladders) | done |
 
 ## Phase 4 – input on every device
 | Issue | What | Status |

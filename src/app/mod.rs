@@ -11,6 +11,8 @@
 mod dialogs;
 mod game_view;
 mod menu;
+mod scene;
+mod sprites;
 
 use std::time::Duration;
 
@@ -43,6 +45,7 @@ pub struct App {
     lang_code: String,
     show_about: bool,
     game: GameSession,
+    sprites: sprites::Sprites,
     /// A message for the status bar (text, since when); cleared after a few seconds.
     status_info: Option<(String, f64)>,
 }
@@ -59,6 +62,7 @@ impl App {
             show_about: false,
             // Fixed seed for the first game; a restart (Enter / R) uses the frame time.
             game: GameSession::new(1),
+            sprites: sprites::Sprites::load(&cc.egui_ctx),
             status_info: None,
         };
         app.apply_theme(&cc.egui_ctx);

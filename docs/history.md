@@ -37,6 +37,10 @@ What was done when (one line per issue / release) and the open ideas of the owne
   validator with a goal-reachability search), the first level "Barrels", rolling barrels
   (`barrel.rs`), hammer, jump-over / smash score, time bonus, extra life, lives, level complete /
   game over (Enter / R restarts); the view draws the level, barrels, hammers, ape, goal and a HUD.
+- 2026-11-21: #7 Pixel-art rendering in code (`src/app/sprites.rs`, `scene.rs`): hero (stand, 2 walk
+  frames, jump, climb, hammer, dead), ape (idle, chest beat, throw), friend, rolling / climbing
+  barrels, hammer, smash explosion, fireball frames (unused until #14); girders and ladders are
+  rasterised once per level into a texture. The hero is teal, not red / blue, to stay original.
 
 ## Open ideas
 

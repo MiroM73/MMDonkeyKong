@@ -127,6 +127,25 @@ After a pause the first frame's time (the whole pause) is dropped (`skip_dt`). C
 whole view (a pointer click checked by hand, not `Sense::click`, which would also fire on Enter / Space of a focused view) is a desktop convenience; #8 must replace it with a pause button, because on a touch
 screen the d-pad and jump taps would toggle the pause.
 
+## Rendering (`src/app/sprites.rs`, `scene.rs`)
+
+Sprites are const arrays of text rows, one character per pixel (`palette`: `.` transparent, letters
+are fixed colours - the UI light / dark theme never touches the playfield). The `sprites!` macro
+declares `Id` and `Id::def()`; a sprite with `mirror` stores only its left half (ape, friend).
+`decode` checks that rows have equal length and known characters (tests check every sprite and the
+sizes the renderer assumes: hero 10 x 12, ape 24 x 24, barrel 8 x 8 ...). `Sprites::load` makes one
+`NEAREST` texture per sprite once, in `App::new`. Sprites face right; the front end flips them.
+
+`scene::render_background` rasterises girders (8 rows below the walking surface, rivets) and
+ladders (broken ones miss their middle third) once per level into a 224 x 256 texture kept in
+`GameSession::background`; a new session rebuilds it. `scene::draw_scene` blits that, then friend,
+hammers, ape, barrels, hero (+ hammer in the hand) and explosions at whole playfield pixels, so
+the art stays crisp at the integer scale. Frame choice is in pure functions (`hero_sprite`,
+`ape_sprite`, `barrel_sprite`, `explosion_sprite`): the walk cycle runs by tick while the hero
+moved in the last step (`GameSession::hero_moving`), the climb flips every 4 px of height, rolling
+barrels turn with their x, the ape shows the throw for `APE_THROW_STEPS` after a barrel
+(`GameState::ape_throwing`). A hammer smash spawns an `Effect` (age in steps, `EXPLOSION_STEPS`).
+
 ## Tests
 
 `cargo test`: `i18n` (file format, completeness of the built-in languages, language resolution),

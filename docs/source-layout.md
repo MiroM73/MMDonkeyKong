@@ -11,6 +11,8 @@ The files of `src/` and the conventions of the code.
 | `index.html`, `Trunk.toml` | the web build (Trunk): page, canvas, no-zoom / no-scroll styles; `dist/` is the output (ignored) |
 | `src/app/mod.rs` | the `App` struct, helper types / consts, `App::new`, the frame loop (`eframe::App::ui`) |
 | `src/app/menu.rs` | menu bar: File, View (theme, language), Help |
+| `src/app/sprites.rs` | the pixel-art sprites as const text-row arrays (`sprites!` macro, `Id`), `decode`, the `NEAREST` textures |
+| `src/app/scene.rs` | draws the playfield: background raster (girders, ladders), animation frame choice, effects |
 | `src/app/game_view.rs` | the game view: fixed-step loop from the frame time, keyboard input, scaled playfield drawing, pause |
 | `src/app/dialogs/` | one file per window (`about.rs`) |
 | `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `player.rs`, `barrel.rs`, `level.rs` (format, parser, validator), `levels.rs` (embedded files), `input.rs`, `rng.rs`, `timestep.rs` (fixed step); later difficulty, progress |
