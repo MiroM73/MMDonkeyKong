@@ -130,7 +130,7 @@ impl App {
     }
 
     /// Runs the simulation steps due in this frame.
-    fn run_steps(&mut self, ctx: &egui::Context, held: Buttons, pressed: Buttons) {
+    fn run_steps(&mut self, ctx: &egui::Context, held: Buttons, pressed: Buttons, assist: bool) {
         self.game.latch.press(pressed);
         let dt = if std::mem::take(&mut self.game.skip_dt) {
             0.0
@@ -138,7 +138,8 @@ impl App {
             ctx.input(|i| i.unstable_dt)
         };
         for _ in 0..self.game.stepper.advance(dt) {
-            let input = self.game.latch.take_step(held);
+            let mut input = self.game.latch.take_step(held);
+            input.auto_grab = assist;
             let (px, py) = (self.game.state.player.x, self.game.state.player.y);
             let events = game::step(&mut self.game.state, &input);
             let p = &self.game.state.player;
@@ -245,6 +246,7 @@ impl App {
                 &ctx,
                 keys_held.or(touch_held).or(pad.held),
                 keys_pressed.or(touch_pressed).or(pad.pressed),
+                layout.controls,
             );
             // The game animates every frame.
             ctx.request_repaint();

@@ -60,7 +60,7 @@ browser and is unit-tested.
   girder surface nearest to `y` within `SNAP` (4 px); no girder -> falls straight down. Ladders
   (`Geometry::ladders`, `broken` ones are not grabbable): up from below / down from the top when
   within `LADDER_REACH` of the ladder x; x snaps to the ladder, at either end the player steps onto
-  the girder there. A ladder in reach is also grabbed in the air with up / down held (not right after take-off, `GRAB_MIN_VY`), and `jump_pressed` on a ladder jumps off it. Jump: `jump_pressed` on the ground, `vx` (-1/0/1) fixed at take-off - no air
+  the girder there. A ladder in reach is also grabbed in the air with up / down held (not right after take-off, `GRAB_MIN_VY`), and `jump_pressed` on a ladder jumps off it. **Touch assist** (`Input::auto_grab`, set when the on-screen controls are in use): a jump that started sideways also grabs a ladder *ahead* of it without "up" (a thumb cannot hold sideways + up on a d-pad); the ladder must be in the jump direction so a sideways jump off a ladder does not catch it again. Keyboard and gamepad keep the original rule. Jump: `jump_pressed` on the ground, `vx` (-1/0/1) fixed at take-off - no air
   control; `JUMP_VY` -2.6, `GRAVITY` 0.15 -> about 22 px high and 35 px long. Landing is *swept*: a
   girder surface between the previous and the new `y` stops the fall, so even at `MAX_FALL_SPEED`
   nothing tunnels. A landing more than `FALL_LIMIT` (32 px) below the highest point (`top`) kills

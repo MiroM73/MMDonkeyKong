@@ -47,6 +47,7 @@ What was done when (one line per issue / release) and the open ideas of the owne
   left-handed, vibration), vibration on death in the browser.
 - 2026-11-21: #9 Gamepad: `gilrs` on the desktop, the Gamepad API in the browser; stick / d-pad move and
   climb, A jumps, Start pauses / restarts; idle polling while a pad is connected; CI installs libudev-dev.
+- 2026-11-22: touch assist: with the on-screen controls a sideways jump grabs a ladder it passes without "up"; a sideways jump from a ladder jumps off in that direction (owner's request after phone testing).
 
 ## Open ideas
 

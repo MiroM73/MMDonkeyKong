@@ -11,4 +11,7 @@ pub struct Input {
     pub jump_held: bool,
     /// The jump button went down since the previous step (an edge – never lost between steps).
     pub jump_pressed: bool,
+    /// Touch assist: a jump that started sideways grabs a ladder it passes, without "up" held
+    /// (a thumb on a d-pad cannot hold sideways + up).
+    pub auto_grab: bool,
 }

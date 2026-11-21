@@ -55,6 +55,7 @@ impl PressLatch {
             down: m.down,
             jump_held: m.jump,
             jump_pressed: p.jump,
+            auto_grab: false,
         }
     }
 

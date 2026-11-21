@@ -333,6 +333,7 @@ mod tests {
                 up: n % 11 == 0,
                 down: n % 13 < 4,
                 jump_held: false,
+                auto_grab: false,
                 jump_pressed: n % 50 == 0,
             })
             .collect()

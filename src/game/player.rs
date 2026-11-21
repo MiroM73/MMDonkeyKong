@@ -303,13 +303,16 @@ impl Player {
         top: f32,
     ) -> Option<PlayerEvent> {
         // Grab a ladder in reach with up / down held, except right after take-off.
-        if input.up != input.down
-            && vy > GRAB_MIN_VY
+        let up = input.up != input.down;
+        if vy > GRAB_MIN_VY
             && let Some(i) = geo.ladders.iter().position(|l| {
                 !l.broken
                     && (l.x - self.x).abs() <= LADDER_REACH
                     && self.y > l.top
                     && self.y < l.bottom
+                    // The touch assist grabs only a ladder ahead of the jump, so a sideways jump
+                    // off a ladder does not catch the same ladder again.
+                    && (up || (input.auto_grab && (l.x - self.x) * vx > 0.0))
             })
         {
             self.x = geo.ladders[i].x;
@@ -642,5 +645,59 @@ mod tests {
             p.step(&Input::default(), &geo);
         }
         assert!(p.y >= y - 1.0 && p.is_walking(), "{:?} {}", p.mode, p.y);
+    }
+
+    fn assisted(right: bool, jump: bool) -> Input {
+        Input {
+            right,
+            jump_pressed: jump,
+            auto_grab: true,
+            ..Input::default()
+        }
+    }
+
+    #[test]
+    fn touch_assist_grabs_a_ladder_in_a_sideways_jump_without_up() {
+        let geo = with_ladder();
+        let mut p = Player::new((40.0, 100.0));
+        p.step(&Input::default(), &geo);
+        p.step(&assisted(true, true), &geo);
+        let mut grabbed = false;
+        for _ in 0..40 {
+            p.step(&assisted(true, false), &geo);
+            if matches!(p.mode, Mode::Climbing { .. }) {
+                grabbed = true;
+                break;
+            }
+        }
+        assert!(grabbed, "{:?}", p.mode);
+        assert_eq!(p.x, 50.0);
+    }
+
+    #[test]
+    fn without_the_assist_a_sideways_jump_passes_the_ladder() {
+        let geo = with_ladder();
+        let mut p = Player::new((40.0, 100.0));
+        p.step(&Input::default(), &geo);
+        p.step(&jump_input(true), &geo);
+        for _ in 0..40 {
+            p.step(&held(false, true, false, false), &geo);
+            assert!(!matches!(p.mode, Mode::Climbing { .. }));
+        }
+    }
+
+    #[test]
+    fn touch_assist_jump_off_a_ladder_sideways_is_not_grabbed_again() {
+        let geo = with_ladder();
+        let mut p = Player::new((50.0, 100.0));
+        for _ in 0..11 {
+            p.step(&held(false, false, true, false), &geo);
+        }
+        assert!(matches!(p.mode, Mode::Climbing { .. }));
+        p.step(&assisted(true, true), &geo);
+        for _ in 0..60 {
+            p.step(&assisted(true, false), &geo);
+            assert!(!matches!(p.mode, Mode::Climbing { .. }), "regrabbed");
+        }
     }
 }
