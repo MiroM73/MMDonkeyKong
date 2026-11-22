@@ -99,14 +99,16 @@ is embedded. A new level: add the file and one line in `FILES`.
 ### Conveyor belts (`Level::belts`, `GameState::belts`, `scene.rs`, #14)
 
 A `Belt { girder, dir, every }` makes a girder carry whatever stands on it. The state that changes
-lives in `GameState::belts` (`BeltState { dir, left }`, same index): each step the timer counts
-down and the direction flips every `every` steps. `GameState::belt_dir(x, y)` finds the belt under a
+lives in `GameState::belts` (`BeltState { dir, phase, left }`, same index): each step the timer counts
+down, the direction flips every `every` steps and `phase` (px travelled, signed) advances by
+`dir * BELT_SPEED * obstacle_speed`. `GameState::belt_dir(x, y)` finds the belt under a
 point. In `step`: a *walking* player is moved by `BELT_SPEED` (0.5 px, times the difficulty's
 obstacle speed) through `Player::carry` (it may be carried off the end and falls; a fall of more
 than `FALL_LIMIT` kills as everywhere); a *rolling* barrel gets the belt's direction via
 `Barrel::ride` before its step, so the ape's loads travel with the belt and drop off its end.
 Climbing and airborne players are not carried. The view draws arrows that move with the belt
-(`scene::belt_arrows`; they use the base speed and restart their phase when a belt reverses).
+(`scene::belt_arrows(x0, x1, phase)`; the accumulated `phase` follows the real speed of every
+difficulty and stays continuous when a belt reverses, #30).
 The validator ignores belts: the belt is slower than the walk, so every route stays possible.
 Level 2 (`levels/02-conveyors.txt`) is five flat belts under the ape; the generator makes the same
 structure from a seed (`LevelKind::Conveyors`).
@@ -266,7 +268,9 @@ A run ends with a score when all lives are lost (game over) or the last level is
 up / down change the letter under the cursor (wrapping), left / right move it, typing a letter sets
 it and moves on (W / A / S / D are letters here, so only the arrow keys navigate), Backspace goes
 back, Enter / gamepad A go to the next place and finish after the last one; for touch every place has
-up / down buttons and there is an OK button. It starts with the last name (`Config::last_name`).
+up / down buttons and there is an OK button; the touch d-pad / jump button also drive it like the
+gamepad (`touch_pressed`), and the screen shrinks (`entry_scale`) to fit the small field of a phone so
+the OK button is never cut off (#27, #28). It starts with the last name (`Config::last_name`).
 After it the score is stored and autosaved and the run goes on (restart the level after a game over,
 the "Play again / Quit" question after the last level). While a name is entered the game keys
 (restart, pause) are off. A menu (name entry, victory question) that opens in a frame never sees the

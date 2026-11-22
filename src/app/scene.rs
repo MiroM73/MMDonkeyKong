@@ -68,10 +68,10 @@ pub(in crate::app) fn render_background(geo: &Geometry) -> Vec<egui::Color32> {
     px
 }
 
-/// The x positions of the arrows on a belt running in direction `dir` (-1 / 1) at `tick`: they
-/// move with the belt, `BELT_ARROW_GAP` apart.
-pub(in crate::app) fn belt_arrows(x0: f32, x1: f32, dir: i8, tick: u64) -> Vec<f32> {
-    let shift = (tick as f32 * crate::game::BELT_SPEED * f32::from(dir)).rem_euclid(BELT_ARROW_GAP);
+/// The x positions of the arrows on a belt whose surface has travelled `phase` px (signed, see
+/// `BeltState::phase`): they move with the belt, `BELT_ARROW_GAP` apart.
+pub(in crate::app) fn belt_arrows(x0: f32, x1: f32, phase: f32) -> Vec<f32> {
+    let shift = phase.rem_euclid(BELT_ARROW_GAP);
     let mut xs = Vec::new();
     let mut x = x0 + shift;
     while x < x1 {
@@ -87,7 +87,7 @@ fn draw_belts(view: &View, st: &GameState) {
     for (spec, belt) in st.level.belts.iter().zip(&st.belts) {
         let g = &st.level.geometry.girders[spec.girder];
         let d = f32::from(belt.dir);
-        for x in belt_arrows(g.x0 + 2.0, g.x1 - 2.0, belt.dir, st.tick) {
+        for x in belt_arrows(g.x0 + 2.0, g.x1 - 2.0, belt.phase) {
             let Some(s) = g.y_at(x) else { continue };
             let to = |px: f32, py: f32| view.origin + egui::vec2(px, py) * view.unit;
             let y = s + 3.5;
@@ -393,14 +393,13 @@ mod tests {
 
     #[test]
     fn belt_arrows_move_with_the_belt() {
-        let right = belt_arrows(0.0, 100.0, 1, 0);
+        let right = belt_arrows(0.0, 100.0, 0.0);
         assert_eq!(right.len(), 10);
         assert_eq!(right[0], 0.0);
-        // 20 steps carry the arrows 10 px (one gap): the same picture again.
-        assert_eq!(belt_arrows(0.0, 100.0, 1, 20), right);
-        let moved = belt_arrows(0.0, 100.0, 1, 4);
-        assert_eq!(moved[0], 2.0);
-        assert_eq!(belt_arrows(0.0, 100.0, -1, 4)[0], 8.0);
+        // One gap of travel: the same picture again.
+        assert_eq!(belt_arrows(0.0, 100.0, BELT_ARROW_GAP), right);
+        assert_eq!(belt_arrows(0.0, 100.0, 2.0)[0], 2.0);
+        assert_eq!(belt_arrows(0.0, 100.0, -2.0)[0], BELT_ARROW_GAP - 2.0);
     }
 
     #[test]

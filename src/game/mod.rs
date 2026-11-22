@@ -112,9 +112,12 @@ pub const BELT_SPEED: f32 = 0.5;
 pub const LIFT_SPEED: f32 = 0.4;
 
 /// The running state of one `Belt` of the level (same index).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BeltState {
     pub dir: i8,
+    /// Distance the belt surface has travelled so far (px, signed); advances by the real belt
+    /// speed every step, so a reversal does not make it jump. Only the drawing reads it.
+    pub phase: f32,
     /// Steps until the belt reverses (counts down only when the belt reverses at all).
     pub left: u32,
 }
@@ -214,6 +217,7 @@ impl GameState {
                 .iter()
                 .map(|b| BeltState {
                     dir: b.dir,
+                    phase: 0.0,
                     left: b.every,
                 })
                 .collect(),
@@ -348,7 +352,9 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
     }
 
     // The belts reverse on schedule and carry the player standing on them.
+    let belt_step = BELT_SPEED * state.params.obstacle_speed;
     for (b, spec) in state.belts.iter_mut().zip(&state.level.belts) {
+        b.phase += f32::from(b.dir) * belt_step;
         if spec.every > 0 {
             b.left = b.left.saturating_sub(1);
             if b.left == 0 {
@@ -932,6 +938,23 @@ mod tests {
         idle(&mut s, every);
         assert_eq!(s.belts[0].dir, 1);
         assert_eq!(s.belt_dir(100.0, 248.0), None);
+    }
+
+    #[test]
+    fn the_belt_phase_follows_the_real_speed_and_does_not_jump() {
+        let mut s = conveyors();
+        s.barrel_in = u32::MAX;
+        s.player.mode = Mode::Dead { left: u32::MAX };
+        let step = BELT_SPEED * s.params.obstacle_speed;
+        idle(&mut s, 10);
+        assert!((s.belts[0].phase - 10.0 * step).abs() < 1e-4);
+        // Across the reversal the phase changes by one step at a time, never by more.
+        let every = s.level.belts[0].every as usize;
+        for _ in 0..2 * every {
+            let before = s.belts[0].phase;
+            idle(&mut s, 1);
+            assert!((s.belts[0].phase - before).abs() <= step + 1e-4);
+        }
     }
 
     #[test]

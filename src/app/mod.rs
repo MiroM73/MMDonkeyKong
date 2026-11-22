@@ -102,7 +102,7 @@ impl App {
             audio: audio::platform_audio(),
             audio_applied: None,
             screen: Screen::Title,
-            // Only the placeholder behind the title screen; every game starts with the frame time.
+            // Only the placeholder behind the title screen; every game is seeded from the clock.
             game: GameSession::new(1, 0, difficulty, None, 0),
             save: SaveData::default(),
             storage: storage::platform_storage(),

@@ -108,6 +108,12 @@ What was done when (one line per issue / release) and the open ideas of the owne
   `Event::TimeUp` with its own sound); the bonus restarts from its full value; the HUD bonus blinks red
   during the last five drops; Hard keeps the old behaviour (open: decide after playing). The "waiting" check of the balance bots
   (strong bot's longest Insane run under the bonus time) is still open.
+- **#27, #28 Touch name entry** – the name-entry screen is scaled to the (small) game field of a phone so the
+  OK button is no longer cut off, and the touch d-pad / jump button drive it like the gamepad.
+- **#26 Seed from the clock** – `progress::clock_seed` mixes the wall clock (`SystemTime` / `Date.now()` in the
+  browser) into every game's seed, so the first game differs on every launch.
+- **#30 Belt arrows** – `BeltState::phase` accumulates the real belt travel; arrows follow the difficulty speed
+  and do not jump on reversal.
 
 ## Open ideas
 

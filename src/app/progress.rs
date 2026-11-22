@@ -8,6 +8,20 @@ use crate::app::*;
 use crate::game::{self, Status};
 use crate::save::{LoadError, SaveData};
 
+/// A seed that differs on every launch: the wall clock (milliseconds) mixed with the frame time.
+/// The frame time alone is the time since the start of the app, so it is nearly the same whenever
+/// the player starts the first game quickly.
+pub(in crate::app) fn clock_seed(frame_time: f64) -> u64 {
+    #[cfg(not(target_arch = "wasm32"))]
+    let wall = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as u64);
+    // `SystemTime` panics in the browser; `Date.now()` is the wall clock there.
+    #[cfg(target_arch = "wasm32")]
+    let wall = web_sys::js_sys::Date::now() as u64;
+    wall ^ ((frame_time * 1000.0) as u64).rotate_left(32)
+}
+
 /// Message for a save that could not be read (the text was kept as a backup).
 pub(in crate::app) fn load_problem(e: &LoadError) -> String {
     match e {
@@ -42,8 +56,8 @@ impl App {
         lives: Option<u32>,
         score: u32,
     ) {
-        // The frame time makes every game differ (a fixed seed would repeat the barrels).
-        let seed = ctx.input(|i| (i.time * 1000.0) as u64);
+        // The clock makes every game differ (a fixed seed would repeat the barrels).
+        let seed = clock_seed(ctx.input(|i| i.time));
         self.game = GameSession::new(seed, level, self.cfg.difficulty, lives, score);
         // A finished game or a menu requests no repaints, so this frame's time is the whole idle
         // wait (it would look like a stall and pause the new game): drop it.

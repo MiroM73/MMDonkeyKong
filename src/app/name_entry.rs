@@ -2,6 +2,7 @@
 //! letter under the cursor, left / right move it, Enter / A / the OK button go on. Keyboard (typing
 //! a letter works too), gamepad and touch (arrow buttons) all work. The state machine is pure.
 
+use crate::app::controls::Buttons;
 use crate::app::screens::{ITEM_H, menu_item};
 use crate::app::*;
 use crate::save::NAME_LEN;
@@ -106,6 +107,16 @@ impl NameEntry {
     }
 }
 
+/// Height of the entry screen at full size (points); `entry_scale` shrinks it to fit a small field.
+const ENTRY_H: f32 = 290.0;
+
+/// How much the entry screen is shrunk so that it fits `field` (a phone shows a small field).
+fn entry_scale(field: egui::Rect) -> f32 {
+    (field.height() / ENTRY_H)
+        .min(field.width() / 230.0)
+        .clamp(0.5, 1.0)
+}
+
 impl App {
     /// A game ended with `score` on the way to `next`: asks for a name when the score makes the
     /// table, otherwise goes straight on.
@@ -148,6 +159,7 @@ impl App {
         ui: &mut egui::Ui,
         ctx: &egui::Context,
         field: egui::Rect,
+        touch: Buttons,
     ) {
         let Some(mut entry) = self.game.entry.take() else {
             return;
@@ -173,7 +185,7 @@ impl App {
                 ],
             )
         });
-        let pad = self.pad.pressed;
+        let pad = self.pad.pressed.or(touch);
         let [k_up, k_down, k_left, k_right, k_back, k_enter] = keys;
         let mut done = false;
         for c in typed {
@@ -206,19 +218,21 @@ impl App {
                 .id_salt("name_entry")
                 .layout(egui::Layout::top_down(egui::Align::Center)),
         );
-        child.add_space((field.height() * 0.5 - 120.0).max(8.0));
+        let k = entry_scale(field);
+        child.add_space(((field.height() - ENTRY_H * k) / 2.0).max(2.0));
         child.label(
             egui::RichText::new(t!("entry.title"))
-                .size(26.0)
+                .size(26.0 * k)
                 .color(TEXT),
         );
         child.label(
             egui::RichText::new(t!("entry.score", score = entry.score))
-                .size(18.0)
+                .size(18.0 * k)
                 .color(TEXT),
         );
-        child.add_space(10.0);
-        let cell = egui::vec2(56.0, 44.0);
+        child.add_space(10.0 * k);
+        let cell = egui::vec2(56.0, 44.0) * k;
+        let arrow_h = 32.0 * k;
         let name = entry.name();
         let width = NAME_LEN as f32 * (cell.x + 10.0) - 10.0;
         let pad_left = ((child.available_width() - width) / 2.0).max(0.0);
@@ -229,13 +243,13 @@ impl App {
             for (i, ch) in name.chars().enumerate() {
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = egui::vec2(0.0, 6.0);
-                    if menu_item(ui, "▲", egui::vec2(cell.x, 32.0), false, true).clicked() {
+                    if menu_item(ui, "▲", egui::vec2(cell.x, arrow_h), false, true).clicked() {
                         taps.push((i, 1));
                     }
                     if menu_item(ui, &ch.to_string(), cell, entry.pos() == i, true).clicked() {
                         taps.push((i, 0));
                     }
-                    if menu_item(ui, "▼", egui::vec2(cell.x, 32.0), false, true).clicked() {
+                    if menu_item(ui, "▼", egui::vec2(cell.x, arrow_h), false, true).clicked() {
                         taps.push((i, -1));
                     }
                 });
@@ -249,13 +263,17 @@ impl App {
                 _ => {}
             }
         }
-        child.add_space(14.0);
-        let ok = egui::vec2(220.0_f32.min(field.width() - 16.0), ITEM_H);
+        child.add_space(14.0 * k);
+        let ok = egui::vec2(220.0_f32.min(field.width() - 16.0), ITEM_H * k.max(0.8));
         if menu_item(&mut child, &t!("entry.ok"), ok, false, true).clicked() {
             done = true;
         }
-        child.add_space(6.0);
-        child.label(egui::RichText::new(t!("entry.hint")).size(13.0).color(TEXT));
+        child.add_space(6.0 * k);
+        child.label(
+            egui::RichText::new(t!("entry.hint"))
+                .size(13.0 * k)
+                .color(TEXT),
+        );
 
         if done {
             self.submit_name(ctx, entry);
@@ -271,6 +289,15 @@ mod tests {
 
     fn entry() -> NameEntry {
         NameEntry::new(100, EntryNext::Restart, "")
+    }
+
+    #[test]
+    fn the_entry_screen_shrinks_to_fit_a_small_field() {
+        let rect = |w, h| egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(w, h));
+        assert_eq!(entry_scale(rect(800.0, 700.0)), 1.0);
+        let k = entry_scale(rect(300.0, 200.0));
+        assert!(k < 1.0 && ENTRY_H * k <= 200.0 + 0.01);
+        assert_eq!(entry_scale(rect(50.0, 50.0)), 0.5);
     }
 
     #[test]

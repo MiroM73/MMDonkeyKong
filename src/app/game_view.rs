@@ -422,7 +422,7 @@ impl App {
             }
         }
         if entry_open {
-            self.name_entry_ui(ui, &ctx, field);
+            self.name_entry_ui(ui, &ctx, field, touch_pressed);
         }
         if victory_open && self.game.victory_menu {
             match self.victory_menu(ui, field, menu_input) {
