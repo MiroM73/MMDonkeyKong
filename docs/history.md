@@ -84,6 +84,13 @@ What was done when (one line per issue / release) and the open ideas of the owne
 - 2026-11-22: #14 (part 3) Level 4 "Rivets": `rivet:` lines, rivets removed by walking over them (all of
   them win the level), fireballs that hunt the hero over floors and ladders (`fireball.rs`), hammer burns
   them, generator support. Checked in the running exe (rivets, fireballs, ladders). #14 is done.
+- 2026-11-22: #15 (part 1) Levels 5-8 "Barrels II", "Conveyors II", "Lifts II", "Rivets II": generator
+  output saved as files (seed and size in the file header) and tuned by hand: seven floors, faster
+  barrels / loads / springs, more rivets, bigger bonus and extra-life scores. All eight levels appear in
+  the level select and start in the running exe. **Not done yet:** the balance pass. Nobody has played
+  levels 2-8 on the five difficulty steps, so `Difficulty` and the level timings are untouched; the only
+  automated check is a smoke test (every level on every difficulty runs deterministically, keeps its
+  hammers and a positive bonus). Level 7 is close to level 3 (the generator has one lifts layout).
 
 ## Open ideas
 

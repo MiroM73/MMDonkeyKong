@@ -1,0 +1,23 @@
+# Level 7 - Lifts II. Generated with `GEN_TYPE=lifts GEN_SEED=5 GEN_SIZE=6 cargo test print_generated_level -- --ignored --nocapture`
+# (docs/architecture.md -> Level generator), then tuned by hand: A higher upper floor and a spring every 1.5 s.
+name: Lifts II
+type: lifts
+bonus: 11000
+bonus_drop: 100
+bonus_every: 2
+barrel_every: 1.5
+extra_life: 20000
+start: 20 248
+ape: 20 60
+goal: 70 60
+girder: 0 248 56 248
+girder: 92 93 140 93
+girder: 0 60 160 60
+girder: 164 248 224 248
+ladder: 110 60 93
+hammer: 128 93
+hammer: 190 248
+bonus_hammer: 30 248
+bonus_hammer: 190 248
+lift: 76 93 248 up
+lift: 156 93 248 down

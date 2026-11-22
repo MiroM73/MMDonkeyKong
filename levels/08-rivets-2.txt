@@ -1,0 +1,50 @@
+# Level 8 - Rivets II. Generated with `GEN_TYPE=rivets GEN_SEED=4 GEN_SIZE=7 cargo test print_generated_level -- --ignored --nocapture`
+# (docs/architecture.md -> Level generator), then tuned by hand: Seven floors, twelve rivets, a fireball every 4 s.
+name: Rivets II
+type: rivets
+bonus: 12000
+bonus_drop: 100
+bonus_every: 2
+barrel_every: 4.0
+extra_life: 20000
+start: 20 248
+ape: 20 60
+goal: 70 60
+girder: 0 248 224 248
+girder: 0 216.7 192 216.7
+girder: 20 185.3 224 185.3
+girder: 0 154 192 154
+girder: 16 122.7 224 122.7
+girder: 0 91.3 188 91.3
+girder: 0 60 150 60
+ladder: 17 216.7 248
+ladder: 127 216.7 248 broken
+ladder: 167 216.7 248
+ladder: 102 185.3 216.7
+ladder: 77 185.3 216.7
+ladder: 172 154 185.3
+ladder: 137 154 185.3
+ladder: 32 154 185.3
+ladder: 88 122.7 154
+ladder: 63 122.7 154 broken
+ladder: 153 122.7 154
+ladder: 133 91.3 122.7
+ladder: 173 91.3 122.7
+ladder: 97 60 91.3
+ladder: 52 60 91.3 broken
+hammer: 114 91.3
+hammer: 104 154
+bonus_hammer: 94 216.7
+bonus_hammer: 74 185.3
+rivet: 16 216.7
+rivet: 176 216.7
+rivet: 36 185.3
+rivet: 208 185.3
+rivet: 16 154
+rivet: 176 154
+rivet: 32 122.7
+rivet: 208 122.7
+rivet: 16 91.3
+rivet: 172 91.3
+rivet: 40 60
+rivet: 134 60

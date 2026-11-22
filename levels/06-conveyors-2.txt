@@ -1,0 +1,44 @@
+# Level 6 - Conveyors II. Generated with `GEN_TYPE=conveyors GEN_SEED=11 GEN_SIZE=7 cargo test print_generated_level -- --ignored --nocapture`
+# (docs/architecture.md -> Level generator), then tuned by hand: Seven belts, a load every 2.5 s.
+name: Conveyors II
+type: conveyors
+bonus: 10000
+bonus_drop: 100
+bonus_every: 2
+barrel_every: 2.5
+extra_life: 20000
+start: 20 248
+ape: 20 60
+goal: 70 60
+girder: 0 248 224 248
+girder: 0 216.7 196 216.7
+girder: 24 185.3 224 185.3
+girder: 0 154 184 154
+girder: 20 122.7 224 122.7
+girder: 0 91.3 188 91.3
+girder: 0 60 150 60
+ladder: 67 216.7 248
+ladder: 22 216.7 248
+ladder: 87 216.7 248
+ladder: 166 185.3 216.7
+ladder: 106 185.3 216.7
+ladder: 126 185.3 216.7
+ladder: 46 154 185.3
+ladder: 66 154 185.3 broken
+ladder: 86 154 185.3
+ladder: 137 122.7 154
+ladder: 102 122.7 154
+ladder: 167 122.7 154
+ladder: 57 91.3 122.7
+ladder: 82 91.3 122.7 broken
+ladder: 132 60 91.3
+ladder: 112 60 91.3
+hammer: 148 185.3
+hammer: 149 216.7
+bonus_hammer: 54 91.3
+bonus_hammer: 184 122.7
+conveyor: 1 right 9
+conveyor: 2 left 7
+conveyor: 3 right 8
+conveyor: 4 left 8
+conveyor: 5 right 6

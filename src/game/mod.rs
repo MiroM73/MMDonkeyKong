@@ -1031,4 +1031,30 @@ mod tests {
         assert!(s.barrels.is_empty());
         assert!(!s.fireballs.is_empty() && s.fireballs.len() <= 4);
     }
+
+    /// A smoke test of the balance pass: every level on every difficulty runs for a while with
+    /// a scripted input without panicking, stays deterministic and keeps its hammers.
+    #[test]
+    fn every_level_runs_on_every_difficulty() {
+        for lv in 0..level_count() {
+            for d in Difficulty::ALL {
+                let level = builtin_level(lv);
+                let go = |seed| {
+                    let mut s = GameState::start(level.clone(), seed, d, None, 0);
+                    for i in script().iter().cycle().take(1500) {
+                        step(&mut s, i);
+                    }
+                    s
+                };
+                let (a, b) = (go(3), go(3));
+                assert_eq!(a, b, "level {lv} on {d:?} is not deterministic");
+                let s = GameState::start(level.clone(), 3, d, None, 0);
+                assert!(
+                    !s.hammers.is_empty() || level.hammers.is_empty(),
+                    "level {lv} on {d:?} has no hammer"
+                );
+                assert!(s.lives >= 1 && s.bonus > 0, "level {lv} on {d:?}");
+            }
+        }
+    }
 }
