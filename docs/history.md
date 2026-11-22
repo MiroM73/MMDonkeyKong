@@ -133,6 +133,13 @@ What was done when (one line per issue / release) and the open ideas of the owne
   level select work, no console errors. Not verified: on-screen touch controls (no touch device available, the
   buttons do not show on a desktop browser) and a byte-for-byte comparison of `levelgen` output between wasm and
   native - to be checked on a phone (#20).
+- **#18 PWA** – manifest, new game icon (ape, girder, ladder, barrel; also the window / exe icon), maskable and
+  `apple-touch-icon` PNGs generated from `src/icon.rs`, cache-first service worker stamped with the commit by
+  `pages.yml`, *Update available - reload* button in the menu bar (`src/app/pwa.rs`). Verified in Chrome on a local
+  server: the worker controls the page, the cache holds index / js / wasm / manifest / icons, with the server
+  stopped the reload shows the title screen, after a new stamp the hint appears and one click loads the new worker
+  and deletes the old cache. Not verified: adding to the home screen on Android / iOS (→ #20). The release web zip
+  must stamp `sw.js` too (→ #19).
 
 ## Open ideas
 

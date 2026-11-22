@@ -92,3 +92,5 @@ settings.language = Jazyk
 settings.difficulty = Obtížnost
 settings.controls = Ovládání
 about.credits = Návrh, kód, grafika, zvuk a překlady: Claude (Claude Opus 5.5, Anthropic). Zadání: Miroslav Mišík. Vytvořeno v Rustu s egui.
+update.available = Dostupná aktualizace – načíst
+update.hover = Je připravená nová verze. Kliknutím hru načteš znovu s ní.

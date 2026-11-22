@@ -92,3 +92,5 @@ settings.language = Language
 settings.difficulty = Difficulty
 settings.controls = Controls
 about.credits = Design, code, art, sound and translations: Claude (Claude Opus 5.5, Anthropic). Requirements: Miroslav Mišík. Built with Rust and egui.
+update.available = Update available – reload
+update.hover = A new version is ready. Click to reload the game with it.

@@ -48,6 +48,13 @@ jobs:
       - name: Build
         run: trunk build --release --public-url "/MMDonkeyKong/"
 
+      # New bytes in sw.js = a new cache name: browsers install the new service worker and the game
+      # offers the update (web/sw.js, src/app/pwa.rs). The release bundle must do the same (#19).
+      - name: Stamp the service worker with the commit
+        run: |
+          sed -i "s/__BUILD__/${GITHUB_SHA}/" dist/sw.js
+          grep -n "const BUILD" dist/sw.js
+
       - uses: actions/configure-pages@v6
 
       - uses: actions/upload-pages-artifact@v5

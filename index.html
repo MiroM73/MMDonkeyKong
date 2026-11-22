@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#08080e">
   <title>MMDonkeyKong</title>
+  <!-- Installable web app (docs/platforms.md): manifest, icons, service worker (web/sw.js). -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="MMDonkeyKong">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link data-trunk rel="copy-file" href="web/manifest.webmanifest">
+  <link data-trunk rel="copy-file" href="web/sw.js">
+  <link data-trunk rel="copy-file" href="web/icon-192.png">
+  <link data-trunk rel="copy-file" href="web/icon-512.png">
+  <link data-trunk rel="copy-file" href="web/icon-maskable-512.png">
+  <link data-trunk rel="copy-file" href="web/apple-touch-icon.png">
   <!-- Trunk compiles the crate to WebAssembly and injects the loader here. -->
   <link data-trunk rel="rust" data-bin="mmdonkeykong" data-wasm-opt="z" data-wasm-opt-params="--all-features">
   <style>
@@ -40,5 +54,38 @@
 <body>
   <canvas id="game_canvas"></canvas>
   <div id="loading">Loading…</div>
+  <script>
+    // Service worker: offline start + update hint. The game (Rust) listens for "mm-update-ready"
+    // (src/app/pwa.rs) and calls mmApplyUpdate() when the player taps the hint. Not registered on
+    // `trunk serve` (port 8080), a cache would defeat its live reload.
+    if ('serviceWorker' in navigator && location.port !== '8080') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          const ready = () => {
+            window.mmUpdateReady = true;
+            window.dispatchEvent(new Event('mm-update-ready'));
+          };
+          // A worker already waiting (found on a previous visit) or one that installs now.
+          if (reg.waiting && navigator.serviceWorker.controller) ready();
+          reg.addEventListener('updatefound', () => {
+            const worker = reg.installing;
+            if (!worker) return;
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'installed' && navigator.serviceWorker.controller) ready();
+            });
+          });
+          window.mmApplyUpdate = () => {
+            if (!reg.waiting) return location.reload();
+            navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+            reg.waiting.postMessage('skip-waiting');
+          };
+          // An installed app may stay open for days: look for a new build when it comes back.
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) reg.update().catch(() => {});
+          });
+        }).catch((e) => console.warn('service worker:', e));
+      });
+    }
+  </script>
 </body>
 </html>

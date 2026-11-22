@@ -364,6 +364,32 @@ barrels turn with their x, the ape shows the throw for `APE_THROW_STEPS` after a
 `cargo test`: `i18n` (file format, completeness of the built-in languages, language resolution),
 `config` (defaults of a partial file), `icon` (pixels and `.ico` layout).
 
+### Installable web app (`web/`, `index.html`, `src/app/pwa.rs`, #18)
+- **Files.** `index.html` links the manifest, the icons and `apple-touch-icon` and lets Trunk copy
+  `web/manifest.webmanifest`, `web/sw.js` and the icon PNGs to the root of `dist/` (`data-trunk rel="copy-file"`,
+  no hash in the names). Every URL is relative (`start_url: "./"`, `register('./sw.js')`), so the same files work
+  under `/MMDonkeyKong/` on Pages and under `/` on a local server. The manifest asks for `display: fullscreen`
+  with a `standalone` fallback (iOS ignores fullscreen).
+- **Icons** are drawn in `src/icon.rs` (`rgba` = rounded square on transparent, `rgba_maskable` = opaque full-bleed,
+  picture shrunk into the safe circle; also used for `apple-touch-icon.png`). The PNGs in `web/` are committed;
+  the test `icon::tests::web_icons_are_current` fails when they differ from the code, and
+  `UPDATE_ICONS=1 cargo test web_icons` rewrites them (`png` is a dev-dependency).
+- **Service worker (`web/sw.js`), cache-first.** On install it fetches `index.html`, picks every `.js` / `.wasm` /
+  `.css` it names (Trunk puts the hashed file names there) plus the manifest and icons, and stores them in the
+  cache `mmdonkeykong-<BUILD>`. Every GET of the same origin is answered from that cache (a page load always gets
+  the cached `index.html`), so the game starts with no network and instantly on a weak one; a miss goes to the
+  network and is cached.
+- **Updates.** `__BUILD__` in `sw.js` is replaced with the commit hash by `pages.yml` after the Trunk build, so
+  every deployment has new bytes: the browser installs the new worker next to the old one (the old one keeps
+  serving). `index.html` then sets `window.mmUpdateReady` and fires the event `mm-update-ready`; `pwa::UpdateWatch`
+  (wasm only) listens (one repaint, no polling) and `App::menu_bar` shows the green button *Update available -
+  reload* (`update.available` / `update.hover`). A click calls `window.mmApplyUpdate()`: it posts `skip-waiting`
+  to the waiting worker, waits for `controllerchange` and reloads; `activate` deletes the old caches. An open
+  app also checks for a new build when it becomes visible again.
+- **`trunk serve`** (port 8080) never registers the worker, its live reload would fight the cache. To try the
+  worker locally: `trunk build --release --public-url /`, replace `__BUILD__` in `dist/sw.js` by hand, serve `dist`
+  on another port (`python -m http.server 8081`); change the stamp and restart the server to see the hint.
+
 ### Sound (`src/audio/`, #16)
 - `synth.rs`: pure rendering of `Tone`s (square / triangle / noise, linear frequency slide,
   2 ms attack + decay) into mono `f32` buffers at 22 050 Hz. `effect(Event)` and `music()` (a 4-bar

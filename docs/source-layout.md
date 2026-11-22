@@ -30,7 +30,9 @@ The files of `src/` and the conventions of the code.
 | `levels/*.txt` | level data, embedded with `include_str!` (`src/game/levels.rs`); format: `docs/architecture.md` → Level format |
 | `src/config.rs` | `Config` (serde defaults), load / atomic save |
 | `src/i18n.rs` | `t!()` macro, language files, built-in languages, completeness test |
-| `src/icon.rs` | the icon drawn in code (window icon, `.ico` for `build.rs`) |
+| `src/icon.rs` | the icon drawn in code (window icon, `.ico` for `build.rs`, the PNGs in `web/`) |
+| `src/app/pwa.rs` | browser only: the "update available" button of the installable web app |
+| `web/` | files of the web app copied by Trunk: `manifest.webmanifest`, `sw.js`, generated icon PNGs |
 | `build.rs` | embeds the icon and version information into the exe (Windows) |
 | `lang/*.lang` | built-in translations (en, sk, cs, de) |
 

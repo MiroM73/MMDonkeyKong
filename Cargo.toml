@@ -23,7 +23,7 @@ gilrs = "0.11"
 eframe = { version = "0.37", default-features = false, features = ["glow", "default_fonts"] }
 wasm-bindgen-futures = "0.4"
 # Vibration on a hit (navigator.vibrate), Web Audio for the sound.
-web-sys = { version = "0.3", features = ["Window", "Navigator", "Gamepad", "GamepadButton", "Storage", "AudioContext", "AudioBuffer", "AudioBufferSourceNode", "AudioDestinationNode", "AudioNode", "AudioParam", "GainNode"] }
+web-sys = { version = "0.3", features = ["Window", "EventTarget", "Navigator", "Gamepad", "GamepadButton", "Storage", "AudioContext", "AudioBuffer", "AudioBufferSourceNode", "AudioDestinationNode", "AudioNode", "AudioParam", "GainNode"] }
 # The "js" feature reads navigator.language in the browser (without it the language is never found).
 sys-locale = { version = "0.3", features = ["js"] }
 # Add when needed (versions as used in RusTrace / MM PortLens):
@@ -34,6 +34,10 @@ sys-locale = { version = "0.3", features = ["js"] }
 opt-level = 3
 lto = "thin"
 strip = true
+
+[dev-dependencies]
+# Reads / writes the PNG icons of the web app (`web/`, test in `src/icon.rs`).
+png = "0.18"
 
 [build-dependencies]
 winresource = "0.1"

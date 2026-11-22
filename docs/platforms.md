@@ -67,6 +67,8 @@ scripts) is reused unchanged, and the game logic stays a pure module testable on
    wasm, js and html. After the first visit the game starts without internet in any browser and
    can be "added to the home screen" on a phone / tablet, then looks like a native app (full
    screen, own icon). A version string in the cache name makes updates replace the old cache.
+   A new build is offered by an *Update available* button in the menu bar (details: `docs/architecture.md` →
+   Installable web app).
 3. **Offline HTML bundle (optional)** – the Trunk output zipped as `mmdonkeykong-web.zip` in the
    release, openable from a local folder with a tiny static server (browsers block wasm over
    `file://`), so mostly useful for PC; the exe is the real offline version.

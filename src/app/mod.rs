@@ -17,6 +17,8 @@ mod level_select;
 mod menu;
 mod name_entry;
 mod progress;
+#[cfg(target_arch = "wasm32")]
+mod pwa;
 mod scene;
 mod screens;
 mod sprites;
@@ -85,6 +87,9 @@ pub struct App {
     sprites: sprites::Sprites,
     /// A message for the status bar (text, since when); cleared after a few seconds.
     status_info: Option<(String, f64)>,
+    /// Browser: a new build of the web app is waiting (issue #18).
+    #[cfg(target_arch = "wasm32")]
+    update_watch: pwa::UpdateWatch,
 }
 
 impl App {
@@ -115,6 +120,8 @@ impl App {
             gamepad: gamepad::Gamepad::new(),
             sprites: sprites::Sprites::load(&cc.egui_ctx),
             status_info: None,
+            #[cfg(target_arch = "wasm32")]
+            update_watch: pwa::UpdateWatch::new(&cc.egui_ctx),
         };
         app.load_save();
         app.enter_title();

@@ -44,6 +44,8 @@ impl App {
                     self.show_about = true;
                 }
             });
+            #[cfg(target_arch = "wasm32")]
+            self.update_hint(ui);
         });
     }
 
