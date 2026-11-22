@@ -3,7 +3,7 @@
 //! sub-seed. Only `+ - * /` and the seeded `Rng` are used, so a seed gives the same level on every
 //! platform. Print a level as a file with the ignored test `print_generated_level` (see below).
 
-use super::level::{Level, LevelKind};
+use super::level::{Belt, Level, LevelKind};
 use super::{Geometry, Girder, Ladder, Rng, STEP_HZ, builtin_level};
 
 /// How many sub-seeds are tried before the generator gives up and returns the shipped level.
@@ -38,13 +38,16 @@ pub fn generate(kind: LevelKind, seed: u64, size_hint: u32) -> Level {
 /// One candidate (not validated yet).
 fn build(kind: LevelKind, sub_seed: u64, size_hint: u32, name_seed: u64) -> Level {
     match kind {
-        LevelKind::Barrels => barrels(sub_seed, size_hint, name_seed),
+        LevelKind::Barrels | LevelKind::Conveyors => stacked(kind, sub_seed, size_hint, name_seed),
     }
 }
 
 /// Stacked girders of alternating slope (barrels roll down them and fall off the open end),
 /// 2–3 ladders between neighbouring floors (one of them may be broken), hammers on the way up.
-fn barrels(seed: u64, size_hint: u32, name_seed: u64) -> Level {
+/// `Conveyors` uses flat floors that carry their loads: a belt on every floor but the first and
+/// the last, running towards the open end and reversing every 5–9 s.
+fn stacked(kind: LevelKind, seed: u64, size_hint: u32, name_seed: u64) -> Level {
+    let belts_level = kind == LevelKind::Conveyors;
     let mut rng = Rng::new(seed);
     let n = size_hint.clamp(*FLOORS.start(), *FLOORS.end()) as usize;
     let spacing = (BOTTOM_Y - TOP_Y) / (n - 1) as f32;
@@ -52,13 +55,17 @@ fn barrels(seed: u64, size_hint: u32, name_seed: u64) -> Level {
     for i in 0..n {
         let base = BOTTOM_Y - i as f32 * spacing;
         let g = if i == 0 {
-            Girder::new(0.0, 248.0, 224.0, 240.0)
+            Girder::new(0.0, 248.0, 224.0, if belts_level { 248.0 } else { 240.0 })
         } else if i == n - 1 {
             Girder::new(0.0, TOP_Y, (130 + 10 * rng.range(0, 4)) as f32, TOP_Y)
         } else {
             // Steeper floors need more room between them (see MIN_CLEARANCE).
             let steepest = ((spacing - 24.0) as i32).clamp(6, 10);
-            let drop = rng.range(6, steepest) as f32;
+            let drop = if belts_level {
+                0.0
+            } else {
+                rng.range(6, steepest) as f32
+            };
             let (x0, x1) = if i % 2 == 1 {
                 (0.0, (184 + 4 * rng.range(0, 3)) as f32)
             } else {
@@ -133,11 +140,25 @@ fn barrels(seed: u64, size_hint: u32, name_seed: u64) -> Level {
     let hammers = vec![item(&mut rng, f1), item(&mut rng, f2)];
     let bonus_hammers = vec![item(&mut rng, f3), item(&mut rng, f4)];
 
+    let belts = if belts_level {
+        (1..n - 1)
+            .map(|girder| Belt {
+                girder,
+                dir: if girder % 2 == 1 { 1 } else { -1 },
+                every: STEP_HZ * rng.range(5, 9) as u32,
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
     // 1.5 to 4 seconds in half-second steps (written back as exact seconds).
     let barrel_every = (STEP_HZ / 2) * rng.range(3, 8) as u32;
     Level {
-        name: format!("Barrels {name_seed}"),
-        kind: LevelKind::Barrels,
+        name: format!(
+            "{} {name_seed}",
+            if belts_level { "Conveyors" } else { "Barrels" }
+        ),
+        kind,
         bonus: 5000,
         bonus_drop: 100,
         bonus_every: 2 * STEP_HZ,
@@ -149,6 +170,7 @@ fn barrels(seed: u64, size_hint: u32, name_seed: u64) -> Level {
         geometry: Geometry { girders, ladders },
         hammers,
         bonus_hammers,
+        belts,
     }
 }
 

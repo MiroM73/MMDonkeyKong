@@ -1,0 +1,48 @@
+# Level 2 - Conveyors. Same format as level 1 (see docs/architecture.md -> Level format).
+# The floors are flat belts: they carry the hero and the ape's loads towards their open ends
+# and reverse every few seconds. Walking against a belt is slower, standing still drifts away.
+name: Conveyors
+type: conveyors
+
+bonus: 6000
+bonus_drop: 100
+bonus_every: 2
+barrel_every: 3.5
+extra_life: 10000
+
+start: 20 248
+ape: 20 60
+goal: 70 60
+
+# girder: x0 y0 x1 y1   (x0 < x1); the number of a girder = its position here, counted from 0
+girder: 0 248 224 248
+girder: 0 208 200 208
+girder: 24 168 224 168
+girder: 0 128 200 128
+girder: 24 92 224 92
+girder: 0 60 130 60
+
+# conveyor: girder  left|right  seconds between reversals (0 = never)
+conveyor: 1 right 6
+conveyor: 2 left 8
+conveyor: 3 right 6
+conveyor: 4 left 9
+
+# ladder: x top bottom [broken]
+ladder: 150 208 248
+ladder: 60 208 248 broken
+ladder: 40 168 208
+ladder: 170 168 208
+ladder: 100 128 168
+ladder: 190 128 168 broken
+ladder: 60 92 128
+ladder: 150 92 128
+ladder: 90 60 92
+
+# hammer: x y
+hammer: 120 168
+hammer: 160 92
+
+# bonus_hammer: x y   (extra hammers, only on the easier difficulties; Relaxed +2, Easy +1)
+bonus_hammer: 110 208
+bonus_hammer: 140 128

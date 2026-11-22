@@ -20,6 +20,9 @@ const WALK_STEPS: u64 = 6;
 const HAMMER_SWING_STEPS: u64 = 8;
 const BEAT_STEPS: u64 = 20;
 const FIRE_STEPS: u64 = 8;
+/// Distance between the arrows drawn on a conveyor belt, and how many steps one pixel of their
+/// movement takes (the belt carries 0.5 px per step).
+const BELT_ARROW_GAP: f32 = 10.0;
 /// How long a smash explosion lasts, in steps; it shows `Id::Explosion*` in thirds.
 pub(in crate::app) const EXPLOSION_STEPS: u32 = 18;
 
@@ -63,6 +66,37 @@ pub(in crate::app) fn render_background(geo: &Geometry) -> Vec<egui::Color32> {
         }
     }
     px
+}
+
+/// The x positions of the arrows on a belt running in direction `dir` (-1 / 1) at `tick`: they
+/// move with the belt, `BELT_ARROW_GAP` apart.
+pub(in crate::app) fn belt_arrows(x0: f32, x1: f32, dir: i8, tick: u64) -> Vec<f32> {
+    let shift = (tick as f32 * crate::game::BELT_SPEED * f32::from(dir)).rem_euclid(BELT_ARROW_GAP);
+    let mut xs = Vec::new();
+    let mut x = x0 + shift;
+    while x < x1 {
+        xs.push(x);
+        x += BELT_ARROW_GAP;
+    }
+    xs
+}
+
+/// The moving arrows of the conveyor belts, drawn into the girder bodies.
+fn draw_belts(view: &View, st: &GameState) {
+    let stroke = egui::Stroke::new(view.unit, RIVET);
+    for (spec, belt) in st.level.belts.iter().zip(&st.belts) {
+        let g = &st.level.geometry.girders[spec.girder];
+        let d = f32::from(belt.dir);
+        for x in belt_arrows(g.x0 + 2.0, g.x1 - 2.0, belt.dir, st.tick) {
+            let Some(s) = g.y_at(x) else { continue };
+            let to = |px: f32, py: f32| view.origin + egui::vec2(px, py) * view.unit;
+            let y = s + 3.5;
+            view.painter
+                .line_segment([to(x - d, y - 2.0), to(x + d, y)], stroke);
+            view.painter
+                .line_segment([to(x - d, y + 2.0), to(x + d, y)], stroke);
+        }
+    }
 }
 
 fn draw_ladder(l: &Ladder, put: &mut impl FnMut(i32, i32, egui::Color32)) {
@@ -176,6 +210,7 @@ pub(in crate::app) fn draw_scene(view: &View, st: &GameState, look: &Look) {
     };
 
     view.blit(look.background, 0, 0, false);
+    draw_belts(view, st);
 
     // The friend at the goal and the hammer items.
     let (gx, gy) = st.level.goal;
@@ -315,6 +350,18 @@ mod tests {
         assert_ne!(a.1, b.1, "hands and feet swap while climbing");
         p.mode = Mode::Dead { left: 10 };
         assert_eq!(hero_sprite(&p, 0, false, false).0, Id::HeroDead);
+    }
+
+    #[test]
+    fn belt_arrows_move_with_the_belt() {
+        let right = belt_arrows(0.0, 100.0, 1, 0);
+        assert_eq!(right.len(), 10);
+        assert_eq!(right[0], 0.0);
+        // 20 steps carry the arrows 10 px (one gap): the same picture again.
+        assert_eq!(belt_arrows(0.0, 100.0, 1, 20), right);
+        let moved = belt_arrows(0.0, 100.0, 1, 4);
+        assert_eq!(moved[0], 2.0);
+        assert_eq!(belt_arrows(0.0, 100.0, -1, 4)[0], 8.0);
     }
 
     #[test]

@@ -3,7 +3,8 @@
 //! One `key: values` per line, `#` starts a comment, blank lines are ignored. Keys: `name`,
 //! `type`, `bonus`, `bonus_drop`, `bonus_every` (seconds), `barrel_every` (seconds), `extra_life`,
 //! `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
-//! `hammer x y`, `bonus_hammer x y`. Errors carry the line number (`ParseError`).
+//! `hammer x y`, `bonus_hammer x y`, `conveyor girder left|right seconds` (the girder is the
+//! 0-based number of its `girder` line; the belt reverses every `seconds`, 0 = never). Errors carry the line number (`ParseError`).
 
 use std::fmt;
 
@@ -12,18 +13,29 @@ use super::{FIELD_H, FIELD_W, Geometry, Girder, Ladder, STEP_HZ};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LevelKind {
     Barrels,
+    Conveyors,
 }
 
 impl LevelKind {
     /// Every level type (the generator tests loop over it).
-    pub const ALL: &[LevelKind] = &[LevelKind::Barrels];
+    pub const ALL: &[LevelKind] = &[LevelKind::Barrels, LevelKind::Conveyors];
 
     /// The name used after `type:` in a level file.
     pub fn as_str(self) -> &'static str {
         match self {
             LevelKind::Barrels => "barrels",
+            LevelKind::Conveyors => "conveyors",
         }
     }
+}
+
+/// A conveyor belt on the girder with the number `girder`: it carries whoever stands on it in
+/// direction `dir` (-1 / 1) and reverses every `every` steps (0 = never).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Belt {
+    pub girder: usize,
+    pub dir: i8,
+    pub every: u32,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -46,6 +58,8 @@ pub struct Level {
     pub hammers: Vec<(f32, f32)>,
     /// Extra hammers placed only on the easier difficulties (`bonus_hammer x y`).
     pub bonus_hammers: Vec<(f32, f32)>,
+    /// Conveyor belts (the `conveyors` type).
+    pub belts: Vec<Belt>,
 }
 
 /// A problem in a level file; `line` is 1-based, 0 means the file as a whole.
@@ -148,6 +162,7 @@ impl Level {
         let mut geometry = Geometry::default();
         let mut hammers = Vec::new();
         let mut bonus_hammers = Vec::new();
+        let mut belts = Vec::new();
 
         for (i, raw) in text.lines().enumerate() {
             let line = i + 1;
@@ -215,6 +230,27 @@ impl Level {
                 }
                 "hammer" => hammers.push(point(line, key, value)?),
                 "bonus_hammer" => bonus_hammers.push(point(line, key, value)?),
+                "conveyor" => {
+                    let parts: Vec<&str> = value.split_whitespace().collect();
+                    let [girder, dir, every] = parts[..] else {
+                        return err(
+                            line,
+                            "'conveyor' needs a girder number, left / right and seconds",
+                        );
+                    };
+                    let girder = count(line, key, girder)? as usize;
+                    let dir = match dir {
+                        "left" => -1,
+                        "right" => 1,
+                        _ => return err(line, format!("'{dir}' is not left or right")),
+                    };
+                    let every = if one_number(line, key, every)? == 0.0 {
+                        0
+                    } else {
+                        steps(line, key, every)?
+                    };
+                    belts.push(Belt { girder, dir, every });
+                }
                 "girder" => {
                     let v = numbers(line, key, value, 4)?;
                     in_field(line, v[0], v[1])?;
@@ -260,7 +296,18 @@ impl Level {
             geometry,
             hammers,
             bonus_hammers,
+            belts,
         };
+        if let Some(b) = level
+            .belts
+            .iter()
+            .find(|b| b.girder >= level.geometry.girders.len())
+        {
+            return err(
+                0,
+                format!("conveyor: there is no girder number {}", b.girder),
+            );
+        }
         Ok(level)
     }
 
@@ -320,6 +367,15 @@ extra_life: {}
         }
         for h in &self.bonus_hammers {
             t += &pt("bonus_hammer", *h);
+        }
+        for b in &self.belts {
+            let dir = if b.dir < 0 { "left" } else { "right" };
+            t += &format!(
+                "conveyor: {} {dir} {}
+",
+                b.girder,
+                secs(b.every)
+            );
         }
         t
     }
@@ -398,8 +454,47 @@ mod tests {
 
     #[test]
     fn to_text_round_trips() {
-        let l = Level::parse(include_str!("../../levels/01-barrels.txt")).unwrap();
-        assert_eq!(Level::parse(&l.to_text()).unwrap(), l);
+        for text in [
+            include_str!("../../levels/01-barrels.txt"),
+            include_str!("../../levels/02-conveyors.txt"),
+        ] {
+            let l = Level::parse(text).unwrap();
+            assert_eq!(Level::parse(&l.to_text()).unwrap(), l);
+        }
+    }
+
+    #[test]
+    fn conveyor_lines_are_parsed_and_checked() {
+        let l = Level::parse(&format!(
+            "{MINI}conveyor: 0 left 4.5
+conveyor: 0 right 0
+"
+        ))
+        .unwrap();
+        assert_eq!(l.belts[0].dir, -1);
+        assert_eq!(l.belts[0].every, 270);
+        assert_eq!((l.belts[1].dir, l.belts[1].every), (1, 0));
+        assert_eq!(
+            error_of(&format!(
+                "{MINI}conveyor: 3 left 4
+"
+            )),
+            "conveyor: there is no girder number 3"
+        );
+        assert_eq!(
+            error_of(
+                "conveyor: 0 up 4
+"
+            ),
+            "line 1: 'up' is not left or right"
+        );
+        assert_eq!(
+            error_of(
+                "conveyor: 0 left
+"
+            ),
+            "line 1: 'conveyor' needs a girder number, left / right and seconds"
+        );
     }
 
     #[test]

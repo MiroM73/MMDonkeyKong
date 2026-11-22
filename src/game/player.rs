@@ -252,6 +252,25 @@ impl Player {
         None
     }
 
+    /// Moves a walking player by `dx` without input (a conveyor belt); the player may be carried
+    /// off the end of the girder and fall.
+    pub fn carry(&mut self, dx: f32, geo: &Geometry) {
+        if !self.is_walking() {
+            return;
+        }
+        self.x = (self.x + dx).clamp(0.0, FIELD_W as f32);
+        match geo.ground_near(self.x, self.y) {
+            Some(s) => self.y = s,
+            None => {
+                self.mode = Mode::Airborne {
+                    vx: 0.0,
+                    vy: 0.0,
+                    top: self.y,
+                }
+            }
+        }
+    }
+
     /// The ladder the pressed up / down key grabs: up from below, down from the top.
     fn ladder_to_grab(&self, input: &Input, geo: &Geometry) -> Option<usize> {
         geo.ladders.iter().position(|l| {

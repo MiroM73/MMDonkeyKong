@@ -49,6 +49,13 @@ impl Barrel {
         }
     }
 
+    /// Makes a rolling barrel go in direction `dir` (it is on a conveyor belt).
+    pub fn ride(&mut self, dir: i8) {
+        if let BarrelMode::Rolling { .. } = self.mode {
+            self.mode = BarrelMode::Rolling { dir };
+        }
+    }
+
     pub fn rect(&self) -> Rect {
         Rect {
             x0: self.x - RADIUS,

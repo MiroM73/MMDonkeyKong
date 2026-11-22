@@ -78,10 +78,11 @@ browser and is unit-tested.
 
 ### Level format (`level.rs`, `levels.rs`, `levels/*.txt`, #6)
 
-One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels`), `bonus` /
+One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels`, `conveyors`), `bonus` /
 `bonus_drop` / `bonus_every` (seconds), `barrel_every` (seconds), `extra_life` (score),
 `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
-`hammer x y`, `bonus_hammer x y` (extra hammers of the easier difficulties; all in playfield pixels; ladder ends are girder surface heights). `Level::parse`
+`conveyor girder left|right seconds` (belt on the girder with that 0-based number, reverses every
+`seconds`, 0 = never), `hammer x y`, `bonus_hammer x y` (extra hammers of the easier difficulties; all in playfield pixels; ladder ends are girder surface heights). `Level::parse`
 reports syntax / range errors as `line N: message` (`ParseError`, line 0 = whole file, e.g. a
 missing key). `Level::validate` (rules in `validate.rs`) checks that start, goal, ape, hammers and ladder ends
 stand on girders (within `SNAP`); that a barrel thrown by the ape lands on a girder; that no two
@@ -94,6 +95,21 @@ most `JUMP_REACH` (≈ 28 px = 80 % of the real jump) - the jump limits are deri
 (`parse(to_text(l)) == l`). `levels.rs` embeds the files with
 `include_str!`; the tests parse and validate every embedded file and check that every `levels/*.txt`
 is embedded. A new level: add the file and one line in `FILES`.
+
+### Conveyor belts (`Level::belts`, `GameState::belts`, `scene.rs`, #14)
+
+A `Belt { girder, dir, every }` makes a girder carry whatever stands on it. The state that changes
+lives in `GameState::belts` (`BeltState { dir, left }`, same index): each step the timer counts
+down and the direction flips every `every` steps. `GameState::belt_dir(x, y)` finds the belt under a
+point. In `step`: a *walking* player is moved by `BELT_SPEED` (0.5 px, times the difficulty's
+obstacle speed) through `Player::carry` (it may be carried off the end and falls; a fall of more
+than `FALL_LIMIT` kills as everywhere); a *rolling* barrel gets the belt's direction via
+`Barrel::ride` before its step, so the ape's loads travel with the belt and drop off its end.
+Climbing and airborne players are not carried. The view draws arrows that move with the belt
+(`scene::belt_arrows`; they use the base speed and restart their phase when a belt reverses).
+The validator ignores belts: the belt is slower than the walk, so every route stays possible.
+Level 2 (`levels/02-conveyors.txt`) is five flat belts under the ape; the generator makes the same
+structure from a seed (`LevelKind::Conveyors`).
 
 ### Level generator (`levelgen.rs`, #22)
 

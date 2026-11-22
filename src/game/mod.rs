@@ -91,6 +91,16 @@ const JUMP_OVER_HALF_W: f32 = 6.0;
 const APE_THROW_STEPS: u32 = 15;
 const GOAL_HALF_W: f32 = 8.0;
 const GOAL_HEIGHT: f32 = 16.0;
+/// Pixels per step a conveyor belt carries what stands on it (at obstacle speed 1.0).
+pub const BELT_SPEED: f32 = 0.5;
+
+/// The running state of one `Belt` of the level (same index).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BeltState {
+    pub dir: i8,
+    /// Steps until the belt reverses (counts down only when the belt reverses at all).
+    pub left: u32,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct GameState {
@@ -103,6 +113,8 @@ pub struct GameState {
     pub hammers: Vec<(f32, f32)>,
     /// Steps left of the hammer in the player's hand (0 = none).
     pub hammer_left: u32,
+    /// The conveyor belts: the direction each runs now and the steps until it reverses.
+    pub belts: Vec<BeltState>,
     pub score: u32,
     pub lives: u32,
     pub bonus: u32,
@@ -157,6 +169,14 @@ impl GameState {
             barrels: Vec::new(),
             hammers: level.hammers.clone(),
             hammer_left: 0,
+            belts: level
+                .belts
+                .iter()
+                .map(|b| BeltState {
+                    dir: b.dir,
+                    left: b.every,
+                })
+                .collect(),
             score,
             lives: lives.unwrap_or(params.lives),
             bonus: level.bonus,
@@ -170,6 +190,17 @@ impl GameState {
             rng: Rng::new(seed),
             level,
         }
+    }
+
+    /// The direction of the belt under (`x`, `y`), `None` when the ground there is no belt.
+    pub fn belt_dir(&self, x: f32, y: f32) -> Option<i8> {
+        let g = &self.level.geometry;
+        let i = g
+            .girders
+            .iter()
+            .position(|gi| gi.y_at(x).is_some_and(|s| (s - y).abs() <= player::SNAP))?;
+        let at = self.level.belts.iter().position(|b| b.girder == i)?;
+        Some(self.belts[at].dir)
     }
 
     pub fn goal_rect(&self) -> Rect {
@@ -247,6 +278,23 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
         None => {}
     }
 
+    // The belts reverse on schedule and carry the player standing on them.
+    for (b, spec) in state.belts.iter_mut().zip(&state.level.belts) {
+        if spec.every > 0 {
+            b.left = b.left.saturating_sub(1);
+            if b.left == 0 {
+                b.dir = -b.dir;
+                b.left = spec.every;
+            }
+        }
+    }
+    if state.player.is_walking()
+        && let Some(dir) = state.belt_dir(state.player.x, state.player.y)
+    {
+        let push = f32::from(dir) * BELT_SPEED * state.params.obstacle_speed;
+        state.player.carry(push, &state.level.geometry);
+    }
+
     // The ape throws barrels, the barrels move.
     state.barrel_in = state.barrel_in.saturating_sub(1);
     if state.barrel_in == 0 {
@@ -254,7 +302,14 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
         state.barrels.push(Barrel::thrown(ax + 16.0, ay - 8.0, 1));
         state.barrel_in = state.level.barrel_every;
     }
-    for b in &mut state.barrels {
+    for i in 0..state.barrels.len() {
+        // A barrel rolling on a belt goes where the belt goes.
+        let (x, y) = (state.barrels[i].x, state.barrels[i].y);
+        let belt = state.belt_dir(x, y);
+        let b = &mut state.barrels[i];
+        if let Some(dir) = belt {
+            b.ride(dir);
+        }
         b.step(&state.level.geometry, &mut state.rng, &state.params);
     }
     state.barrels.retain(|b| !b.is_gone());
@@ -652,5 +707,79 @@ mod tests {
         };
         assert_eq!(go(Difficulty::Hard), go(Difficulty::Hard));
         assert_ne!(go(Difficulty::Hard), go(Difficulty::Relaxed));
+    }
+
+    fn conveyors() -> GameState {
+        GameState::new(builtin_level(1), 1)
+    }
+
+    #[test]
+    fn a_standing_hero_is_carried_by_the_belt_and_falls_off_its_end() {
+        let mut s = conveyors();
+        s.barrel_in = u32::MAX;
+        s.player.x = 100.0;
+        s.player.y = 208.0; // belt 0 runs right
+        assert_eq!(s.belt_dir(100.0, 208.0), Some(1));
+        idle(&mut s, 60);
+        assert!(s.player.x > 100.0 + 25.0, "{}", s.player.x);
+        assert!(s.player.is_walking());
+        // The floor without a belt does not move the hero.
+        let mut s = conveyors();
+        s.barrel_in = u32::MAX;
+        idle(&mut s, 60);
+        assert_eq!(s.player.x, 20.0);
+        // Left alone on the belt the hero reaches the open end; the fall to the floor below
+        // (40 px) is deadly.
+        let mut s = conveyors();
+        s.barrel_in = u32::MAX;
+        s.player.x = 100.0;
+        s.player.y = 208.0;
+        let events = idle(&mut s, 400);
+        assert!(events.contains(&Event::Died));
+    }
+
+    #[test]
+    fn walking_against_a_belt_is_slower() {
+        let mut s = conveyors();
+        s.barrel_in = u32::MAX;
+        s.player.x = 100.0;
+        s.player.y = 208.0;
+        let left = Input {
+            left: true,
+            ..Input::default()
+        };
+        for _ in 0..40 {
+            step(&mut s, &left);
+        }
+        // 1.0 px/step against 0.5 px/step: 20 px in 40 steps.
+        assert!((s.player.x - 80.0).abs() < 1.0, "{}", s.player.x);
+    }
+
+    #[test]
+    fn belts_reverse_on_schedule() {
+        let mut s = conveyors();
+        s.barrel_in = u32::MAX;
+        s.player.mode = Mode::Dead { left: u32::MAX };
+        let every = s.level.belts[0].every as usize;
+        assert_eq!(s.belts[0].dir, 1);
+        idle(&mut s, every - 1);
+        assert_eq!(s.belts[0].dir, 1);
+        idle(&mut s, 1);
+        assert_eq!(s.belts[0].dir, -1);
+        idle(&mut s, every);
+        assert_eq!(s.belts[0].dir, 1);
+        assert_eq!(s.belt_dir(100.0, 248.0), None);
+    }
+
+    #[test]
+    fn a_load_on_a_belt_goes_where_the_belt_goes() {
+        let mut s = conveyors();
+        s.barrel_in = u32::MAX;
+        s.player.mode = Mode::Dead { left: u32::MAX };
+        s.barrels.push(Barrel::thrown(100.0, 200.0, -1)); // thrown left, lands on belt 0 (right)
+        idle(&mut s, 60);
+        let b = &s.barrels[0];
+        assert!(b.x > 100.0, "{}", b.x);
+        assert!(matches!(b.mode, BarrelMode::Rolling { dir: 1 }));
     }
 }

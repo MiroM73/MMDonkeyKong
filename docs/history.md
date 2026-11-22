@@ -75,6 +75,9 @@ What was done when (one line per issue / release) and the open ideas of the owne
   crossings, ladders through girders and a landing spot for the ape's barrels; `Level::to_text`;
   `levelgen.rs` builds barrels levels from a seed (300 seeds per type validate on the first try, same seed =
   same level, text round-trips). Print one with the ignored test `print_generated_level`.
+- 2026-11-22: #14 (part 1) Level 2 "Conveyors": `conveyor:` lines in the level format, belts that carry the
+  walking hero and the ape's loads and reverse on a timer, moving arrows in the view, generator support
+  (`LevelKind::Conveyors`). Checked in the running exe (level select, belts moving, load on a belt).
 
 ## Open ideas
 

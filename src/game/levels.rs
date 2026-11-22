@@ -3,7 +3,10 @@
 use super::Level;
 
 /// The level files in play order.
-const FILES: &[&str] = &[include_str!("../../levels/01-barrels.txt")];
+const FILES: &[&str] = &[
+    include_str!("../../levels/01-barrels.txt"),
+    include_str!("../../levels/02-conveyors.txt"),
+];
 
 /// Number of built-in levels.
 pub fn count() -> usize {
