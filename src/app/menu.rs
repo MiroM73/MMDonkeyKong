@@ -33,15 +33,25 @@ impl App {
                 self.controls_menu(ui);
                 self.language_menu(ui);
                 ui.separator();
+                if ui
+                    .checkbox(
+                        &mut self.cfg.separate_windows,
+                        t!("menu.view.separate_windows"),
+                    )
+                    .on_hover_text(t!("menu.view.separate_windows.tip"))
+                    .changed()
+                {
+                    self.cfg_dirty = true;
+                }
                 if ui.button(t!("menu.view.settings")).clicked() {
                     ui.close();
-                    self.show_settings = true;
+                    self.settings_win.open();
                 }
             });
             ui.menu_button(t!("menu.help"), |ui| {
                 if ui.button(t!("menu.help.about")).clicked() {
                     ui.close();
-                    self.show_about = true;
+                    self.about_win.open();
                 }
             });
             #[cfg(target_arch = "wasm32")]

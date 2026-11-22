@@ -94,3 +94,10 @@ settings.controls = Controls
 about.credits = Design, code, art, sound and translations: Claude (Claude Opus 5.5, Anthropic). Requirements: Miroslav Mišík. Built with Rust and egui.
 update.available = Update available – reload
 update.hover = A new version is ready. Click to reload the game with it.
+toolwin.zoom_out = Smaller text (Ctrl + -)
+toolwin.zoom_reset = Original size (Ctrl + 0)
+toolwin.zoom_in = Larger text (Ctrl + +)
+toolwin.zoom_hint = Ctrl + wheel zooms
+toolwin.close = Close
+menu.view.separate_windows = Open windows separately
+menu.view.separate_windows.tip = Settings and About open in their own windows that can be moved outside the main window and onto another monitor; off = inside the main window.

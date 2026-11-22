@@ -16,6 +16,7 @@ mod high_scores;
 mod level_select;
 mod menu;
 mod name_entry;
+mod native_window;
 mod progress;
 #[cfg(target_arch = "wasm32")]
 mod pwa;
@@ -34,6 +35,7 @@ use crate::save::SaveData;
 use crate::storage::{self, Storage};
 use crate::{i18n, t};
 use game_view::GameSession;
+use native_window::ToolWindow;
 use screens::MenuState;
 
 /// What the game area shows.
@@ -66,8 +68,8 @@ pub struct App {
     now: f64,
     /// Code of the language in use, e.g. "sk".
     lang_code: String,
-    show_about: bool,
-    show_settings: bool,
+    about_win: ToolWindow,
+    settings_win: ToolWindow,
     audio: Box<dyn Audio>,
     /// The volume and music state last given to `audio`.
     audio_applied: Option<(f32, bool)>,
@@ -102,8 +104,8 @@ impl App {
             cfg_dirty: false,
             last_save: cc.egui_ctx.input(|i| i.time),
             now: cc.egui_ctx.input(|i| i.time),
-            show_about: false,
-            show_settings: false,
+            about_win: ToolWindow::new("about_window"),
+            settings_win: ToolWindow::new("settings_window"),
             audio: audio::platform_audio(),
             audio_applied: None,
             screen: Screen::Title,
@@ -185,6 +187,19 @@ impl App {
             self.audio.set_volume(volume);
             self.audio.set_music(music);
             self.audio_applied = Some((volume, music));
+        }
+    }
+
+    /// Keeps the geometry / zoom of a tool window in the settings (`about` or Settings window).
+    fn store_window_state(&mut self, state: crate::config::ToolWindowState, about: bool) {
+        let slot = if about {
+            &mut self.cfg.about_window
+        } else {
+            &mut self.cfg.settings_window
+        };
+        if *slot != state {
+            *slot = state;
+            self.cfg_dirty = true;
         }
     }
 

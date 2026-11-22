@@ -19,6 +19,26 @@ pub fn config_dir() -> Option<PathBuf> {
     None
 }
 
+/// What a zoomable tool window remembers (#32): the position and inner size of the last one
+/// (logical pixels) and its own text zoom (1.0 = 100 %).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ToolWindowState {
+    pub pos: Option<[f32; 2]>,
+    pub size: Option<[f32; 2]>,
+    pub zoom: f32,
+}
+
+impl Default for ToolWindowState {
+    fn default() -> Self {
+        Self {
+            pos: None,
+            size: None,
+            zoom: 1.0,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -46,6 +66,10 @@ pub struct Config {
     pub difficulty: Difficulty,
     /// The name entered for the last high score (the next entry starts with it).
     pub last_name: String,
+    /// About and Settings open as their own OS windows (View -> Open windows separately).
+    pub separate_windows: bool,
+    pub about_window: ToolWindowState,
+    pub settings_window: ToolWindowState,
 }
 
 impl Default for Config {
@@ -63,6 +87,9 @@ impl Default for Config {
             music: true,
             difficulty: Difficulty::Normal,
             last_name: "AAA".into(),
+            separate_windows: true,
+            about_window: ToolWindowState::default(),
+            settings_window: ToolWindowState::default(),
         }
     }
 }
@@ -133,6 +160,8 @@ mod tests {
         let cfg = Config::parse(r#"{ "theme": "dark" }"#).unwrap();
         assert_eq!(cfg.theme, "dark");
         assert_eq!(cfg.ui_zoom, 1.0);
+        assert!(cfg.separate_windows);
+        assert_eq!(cfg.about_window, ToolWindowState::default());
         assert_eq!(Config::parse("{}").unwrap(), Config::default());
     }
 

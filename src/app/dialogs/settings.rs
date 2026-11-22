@@ -1,18 +1,30 @@
 //! The Settings window: sound, display, language, theme, difficulty and controls in one place.
 
+use crate::app::native_window::ToolSpec;
 use crate::app::*;
 use crate::game::Difficulty;
 
 impl App {
     pub(in crate::app) fn settings_window(&mut self, ctx: &egui::Context) {
-        let mut open = self.show_settings;
-        egui::Window::new(t!("settings.title"))
-            .id(egui::Id::unique("settings_window"))
-            .open(&mut open)
-            .resizable(false)
-            .collapsible(false)
-            .show(ctx, |ui| self.settings_ui(ui));
-        self.show_settings = open;
+        if !self.settings_win.is_open() {
+            return;
+        }
+        let native = self.cfg.separate_windows && !ctx.embed_viewports();
+        let spec = ToolSpec {
+            title: t!("settings.title"),
+            default_size: [440.0, 560.0],
+            min_size: [340.0, 300.0],
+        };
+        let mut state = self.cfg.settings_window.clone();
+        // The content needs `&mut self`, so the window is taken out of it for the call.
+        let mut win = std::mem::replace(&mut self.settings_win, ToolWindow::new("settings_window"));
+        win.show(ctx, native, &spec, &mut state, |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink(false)
+                .show(ui, |ui| self.settings_ui(ui));
+        });
+        self.settings_win = win;
+        self.store_window_state(state, false);
     }
 
     fn settings_ui(&mut self, ui: &mut egui::Ui) {

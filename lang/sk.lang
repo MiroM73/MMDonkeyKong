@@ -94,3 +94,10 @@ settings.controls = Ovládanie
 about.credits = Návrh, kód, grafika, zvuk a preklady: Claude (Claude Opus 5.5, Anthropic). Zadanie: Miroslav Mišík. Vytvorené v Ruste s egui.
 update.available = Dostupná aktualizácia – načítať
 update.hover = Je pripravená nová verzia. Kliknutím hru načítaš znova s ňou.
+toolwin.zoom_out = Menší text (Ctrl + -)
+toolwin.zoom_reset = Pôvodná veľkosť (Ctrl + 0)
+toolwin.zoom_in = Väčší text (Ctrl + +)
+toolwin.zoom_hint = Ctrl + koliesko mení veľkosť
+toolwin.close = Zavrieť
+menu.view.separate_windows = Otvárať okná samostatne
+menu.view.separate_windows.tip = Nastavenia a O programe sa otvoria vo vlastných oknách, ktoré možno presunúť mimo hlavného okna aj na iný monitor; vypnuté = vnútri hlavného okna.

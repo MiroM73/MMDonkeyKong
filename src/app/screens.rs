@@ -241,7 +241,7 @@ impl App {
             Some(TitleItem::LevelSelect) => self.enter_level_select(),
             Some(TitleItem::HighScores) => self.enter_high_scores(),
             Some(TitleItem::Difficulty) => self.step_difficulty(1),
-            Some(TitleItem::Settings) => self.show_settings = true,
+            Some(TitleItem::Settings) => self.settings_win.open(),
             #[cfg(not(target_arch = "wasm32"))]
             Some(TitleItem::Exit) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
             None => {}

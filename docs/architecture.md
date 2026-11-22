@@ -409,5 +409,18 @@ barrels turn with their x, the ape shows the throw for `APE_THROW_STEPS` after a
 ### Settings window (#17)
 `dialogs/settings.rs`: sound (mute, volume, music), display scale (the UI zoom), theme, language,
 difficulty and the controls (`controls_widgets`, shared with View → Controls). Opened from
-View → Settings… and the title screen item. It is a plain `egui::Window` like About (see the
-follow-up issue about moving both to separate OS windows).
+View → Settings… and the title screen item. Like About it is a tool window (#32, below).
+
+### Tool windows (`src/app/native_window.rs`, #32)
+Taken from MM PortLens. `ToolWindow` (open / focus / geometry it opened with) + `ToolSpec` (title,
+default and minimum size). `ToolWindow::show` draws a bottom bar (A− / zoom % / A+ / Close) and the
+content in a central panel, either as an OS window (`ctx.show_viewport_immediate`) when
+`Config::separate_windows` (View → Open windows separately, default on) is set and
+`!ctx.embed_viewports()` (always false in the browser), or as a resizable `egui::Window` inside the
+main window. The text zoom (Ctrl + wheel / `+` / `-` / `0`) scales the window's text styles only,
+because `set_zoom_factor` is shared by all viewports. Position (native), size and zoom live in
+`Config::about_window` / `settings_window` (`ToolWindowState`, written back by
+`App::store_window_state`); the native window is built from the state once when it opens (a builder
+changing between frames moves the window). Esc, ×, Close close it. The Settings content needs
+`&mut self`, so `settings_window` takes its `ToolWindow` out of `App` for the call. A new window:
+a `ToolWindow` field in `App`, a `ToolWindowState` in `Config`, a `dialogs/<name>.rs`.
