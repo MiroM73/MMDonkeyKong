@@ -7,12 +7,23 @@
 
 use std::fmt;
 
-use super::player::SNAP;
 use super::{FIELD_H, FIELD_W, Geometry, Girder, Ladder, STEP_HZ};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LevelKind {
     Barrels,
+}
+
+impl LevelKind {
+    /// Every level type (the generator tests loop over it).
+    pub const ALL: &[LevelKind] = &[LevelKind::Barrels];
+
+    /// The name used after `type:` in a level file.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            LevelKind::Barrels => "barrels",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -165,9 +176,9 @@ impl Level {
                 }
                 "type" => {
                     dup(kind.is_some())?;
-                    kind = Some(match value {
-                        "barrels" => LevelKind::Barrels,
-                        _ => return err(line, format!("unknown level type '{value}'")),
+                    kind = Some(match LevelKind::ALL.iter().find(|k| k.as_str() == value) {
+                        Some(k) => *k,
+                        None => return err(line, format!("unknown level type '{value}'")),
                     });
                 }
                 "bonus" => {
@@ -253,55 +264,64 @@ impl Level {
         Ok(level)
     }
 
-    /// Checks that the level can be played: the start, the goal, the ape and the hammers stand on
-    /// girders, every ladder ends on girders, and the goal can be reached from the start by
-    /// walking and climbing intact ladders. Jumps are not needed for that.
+    /// Checks that the level can be played (rules in `validate.rs`).
     pub fn validate(&self) -> Result<(), String> {
-        let g = &self.geometry;
-        if g.girders.is_empty() {
-            return Err("the level has no girder".into());
-        }
-        let on = |x: f32, y: f32| {
-            g.girders
-                .iter()
-                .position(|gi| gi.y_at(x).is_some_and(|s| (s - y).abs() <= SNAP))
+        super::validate::validate(self)
+    }
+
+    /// The level in the file format; `Level::parse(&l.to_text())` gives `l` back.
+    #[allow(dead_code)] // the editor (#25) exports with it
+    pub fn to_text(&self) -> String {
+        let secs = |steps: u32| steps as f32 / STEP_HZ as f32;
+        let mut t = format!(
+            "name: {}
+type: {}
+bonus: {}
+bonus_drop: {}
+bonus_every: {}
+             barrel_every: {}
+extra_life: {}
+",
+            self.name,
+            self.kind.as_str(),
+            self.bonus,
+            self.bonus_drop,
+            secs(self.bonus_every),
+            secs(self.barrel_every),
+            self.extra_life
+        );
+        let pt = |key: &str, p: (f32, f32)| {
+            format!(
+                "{key}: {} {}
+",
+                p.0, p.1
+            )
         };
-        let start = on(self.start.0, self.start.1).ok_or("the start is not on a girder")?;
-        let goal = on(self.goal.0, self.goal.1).ok_or("the goal is not on a girder")?;
-        on(self.ape.0, self.ape.1).ok_or("the ape is not on a girder")?;
-        for (x, y) in self.hammers.iter().chain(&self.bonus_hammers) {
-            on(*x, *y).ok_or_else(|| format!("the hammer at ({x}, {y}) is not on a girder"))?;
+        t += &pt("start", self.start);
+        t += &pt("ape", self.ape);
+        t += &pt("goal", self.goal);
+        for g in &self.geometry.girders {
+            t += &format!(
+                "girder: {} {} {} {}
+",
+                g.x0, g.y0, g.x1, g.y1
+            );
         }
-        // Graph: girders are nodes, intact ladders edges (both directions).
-        let mut edges = Vec::new();
-        for l in &g.ladders {
-            let top = on(l.x, l.top)
-                .ok_or_else(|| format!("the top of the ladder at x={} is not on a girder", l.x))?;
-            let bottom = on(l.x, l.bottom).ok_or_else(|| {
-                format!("the bottom of the ladder at x={} is not on a girder", l.x)
-            })?;
-            if !l.broken {
-                edges.push((top, bottom));
-            }
+        for l in &self.geometry.ladders {
+            let broken = if l.broken { " broken" } else { "" };
+            t += &format!(
+                "ladder: {} {} {}{broken}
+",
+                l.x, l.top, l.bottom
+            );
         }
-        let mut seen = vec![false; g.girders.len()];
-        let mut todo = vec![start];
-        seen[start] = true;
-        while let Some(n) = todo.pop() {
-            for &(a, b) in &edges {
-                for (from, to) in [(a, b), (b, a)] {
-                    if from == n && !seen[to] {
-                        seen[to] = true;
-                        todo.push(to);
-                    }
-                }
-            }
+        for h in &self.hammers {
+            t += &pt("hammer", *h);
         }
-        if seen[goal] {
-            Ok(())
-        } else {
-            Err("the goal cannot be reached from the start".into())
+        for h in &self.bonus_hammers {
+            t += &pt("bonus_hammer", *h);
         }
+        t
     }
 }
 
@@ -342,8 +362,8 @@ mod tests {
         );
         assert_eq!(error_of("name A\n"), "line 1: expected 'key: value'");
         assert_eq!(
-            error_of("type: lifts\n"),
-            "line 1: unknown level type 'lifts'"
+            error_of("type: zeppelins\n"),
+            "line 1: unknown level type 'zeppelins'"
         );
         assert_eq!(
             error_of("name: A\nname: B\n"),
@@ -374,6 +394,12 @@ mod tests {
             error_of("bonus: -5\n"),
             "line 1: 'bonus' must be a whole number from 0 to 1000000"
         );
+    }
+
+    #[test]
+    fn to_text_round_trips() {
+        let l = Level::parse(include_str!("../../levels/01-barrels.txt")).unwrap();
+        assert_eq!(Level::parse(&l.to_text()).unwrap(), l);
     }
 
     #[test]

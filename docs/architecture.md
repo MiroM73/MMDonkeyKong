@@ -83,11 +83,29 @@ One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels
 `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
 `hammer x y`, `bonus_hammer x y` (extra hammers of the easier difficulties; all in playfield pixels; ladder ends are girder surface heights). `Level::parse`
 reports syntax / range errors as `line N: message` (`ParseError`, line 0 = whole file, e.g. a
-missing key). `Level::validate` checks that start, goal, ape, hammers and ladder ends stand on
-girders (within `SNAP`) and that the goal is reachable from the start by a graph search (girders =
-nodes, intact ladders = edges; jumps are not needed). `levels.rs` embeds the files with
+missing key). `Level::validate` (rules in `validate.rs`) checks that start, goal, ape, hammers and ladder ends
+stand on girders (within `SNAP`); that a barrel thrown by the ape lands on a girder; that no two
+girders cross or come closer than `MIN_CLEARANCE` (20 px); that a ladder joins two different
+girders and does not run through a third; and that the goal **and every hammer** are reachable from
+the start. The search runs over a directed graph (girders = nodes): intact ladders (both ways),
+walking off a girder end onto one at most `WALK_DROP` (31 px) lower, and jumping over a gap of at
+most `JUMP_REACH` (≈ 28 px = 80 % of the real jump) - the jump limits are derived from `JUMP_VY`,
+`GRAVITY`, `WALK_SPEED`, `FALL_LIMIT`. `Level::to_text` writes the file format back
+(`parse(to_text(l)) == l`). `levels.rs` embeds the files with
 `include_str!`; the tests parse and validate every embedded file and check that every `levels/*.txt`
 is embedded. A new level: add the file and one line in `FILES`.
+
+### Level generator (`levelgen.rs`, #22)
+
+`generate(kind, seed, size_hint) -> Level` (`LevelKind::ALL` lists the types): a candidate is built
+from `Rng::new(sub_seed)` with only `+ - * /` (same level on every platform), rounded to 0.1 so
+that `to_text` / `parse` give the identical level, then `validate`d; an invalid candidate is
+re-rolled with the next sub-seed (at most 64, then the first shipped level). `barrels`: 4-7 floors
+(`size_hint` clamped), alternating slopes with an open end for the barrels, 2-3 ladders per floor
+pair (the first one always intact), two hammers and two bonus hammers. The generators are
+constructive, so the test asserts that the *first* candidate of 300 seeds per type is already
+valid. Print a level as a file: `GEN_TYPE=barrels GEN_SEED=7 GEN_SIZE=5 cargo test
+print_generated_level -- --ignored --nocapture` (the crate is a binary, so there is no example).
 
 ### Difficulty (`difficulty.rs`, #10)
 

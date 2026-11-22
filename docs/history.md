@@ -70,6 +70,11 @@ What was done when (one line per issue / release) and the open ideas of the owne
   and after the last level, high-score screen with a tab per difficulty from the title screen. Fixed on the
   way: a menu that opened with Enter / a tap reacted to the same key / tap at once (the victory question
   chose "Play again" immediately).
+- 2026-11-22: #22 Level validator and generator: `validate.rs` now also checks that every hammer is reachable,
+  walk-off and jump moves between girders (limits derived from the physics constants), girder clearance /
+  crossings, ladders through girders and a landing spot for the ape's barrels; `Level::to_text`;
+  `levelgen.rs` builds barrels levels from a seed (300 seeds per type validate on the first try, same seed =
+  same level, text round-trips). Print one with the ignored test `print_generated_level`.
 
 ## Open ideas
 

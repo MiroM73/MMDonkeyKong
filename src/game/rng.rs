@@ -25,6 +25,13 @@ impl Rng {
         debug_assert!(n > 0);
         ((self.next_u64() >> 32) % u64::from(n.max(1))) as u32
     }
+
+    /// A whole number in `lo..=hi` (`lo <= hi`).
+    #[allow(dead_code)] // used by the level generator
+    pub fn range(&mut self, lo: i32, hi: i32) -> i32 {
+        debug_assert!(lo <= hi);
+        lo + self.below((hi - lo + 1) as u32) as i32
+    }
 }
 
 #[cfg(test)]
@@ -44,6 +51,15 @@ mod tests {
         // Seed 0 works (does not get stuck at zero).
         let mut z = Rng::new(0);
         assert_ne!(z.next_u64(), z.next_u64());
+    }
+
+    #[test]
+    fn range_is_inclusive() {
+        let mut r = Rng::new(3);
+        let v: Vec<i32> = (0..300).map(|_| r.range(-2, 2)).collect();
+        assert!(v.iter().all(|x| (-2..=2).contains(x)));
+        assert!([-2, 2].iter().all(|e| v.contains(e)));
+        assert_eq!(r.range(5, 5), 5);
     }
 
     #[test]

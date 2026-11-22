@@ -8,10 +8,14 @@ mod barrel;
 mod difficulty;
 mod input;
 mod level;
+// No front end generates levels yet (the editor, #25, and the tests do).
+#[allow(dead_code)]
+mod levelgen;
 mod levels;
 mod player;
 mod rng;
 mod timestep;
+mod validate;
 
 pub use barrel::{Barrel, BarrelMode};
 pub use difficulty::{Difficulty, Params};

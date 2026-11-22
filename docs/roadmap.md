@@ -64,7 +64,7 @@ and browser problems are found early, not at the end.
 |-------|------|--------|
 | 14 | Levels 2–4: Conveyors, Lifts, Rivets (new hazards, level files) | open |
 | 15 | Levels 5–8: harder variants; balance pass over all five difficulties | open |
-| 22 | Level generator + validator (`game::levelgen`), levels from seeds, test over many seeds | open |
+| 22 | Level generator + validator (`game::levelgen`), levels from seeds, test over many seeds | done |
 
 ## Phase 7 – sound and polish
 | Issue | What | Status |
