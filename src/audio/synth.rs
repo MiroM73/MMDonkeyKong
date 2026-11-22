@@ -131,72 +131,160 @@ pub fn effect(event: Event) -> Vec<f32> {
     render(&effect_tones(event))
 }
 
-/// Length of one eighth note of the music in milliseconds.
-const EIGHTH_MS: u32 = 140;
+/// Notes (eighths) in one music loop: 4 bars of 8 eighth notes.
+const LOOP_EIGHTHS: usize = 32;
 
-/// The lead melody: semitones from A4 (`None` is a rest), one entry per eighth note.
-const LEAD: [Option<i32>; 32] = [
-    Some(0),
-    Some(3),
-    Some(7),
-    Some(3),
-    Some(12),
-    Some(7),
-    Some(3),
-    Some(7),
-    Some(5),
-    Some(8),
-    Some(12),
-    Some(8),
-    Some(14),
-    Some(12),
-    Some(8),
-    Some(12),
-    Some(7),
-    Some(11),
-    Some(14),
-    Some(11),
-    Some(19),
-    Some(14),
-    Some(11),
-    Some(14),
-    Some(12),
-    Some(10),
-    Some(7),
-    Some(3),
-    Some(0),
-    Some(3),
-    Some(7),
-    None,
+/// Seven-note scales as semitone offsets from the root (all minor-ish, one family).
+const SCALES: [[i32; 7]; 4] = [
+    [0, 2, 3, 5, 7, 8, 10], // natural minor
+    [0, 2, 3, 5, 7, 9, 10], // dorian
+    [0, 1, 3, 5, 7, 8, 10], // phrygian
+    [0, 2, 3, 5, 7, 8, 11], // harmonic minor
 ];
 
-/// The bass: one note per quarter note, semitones from A4.
-const BASS: [i32; 16] = [
-    -24, -12, -24, -12, -19, -7, -19, -7, -17, -5, -17, -5, -24, -12, -24, -12,
+/// Chord roots (scale degrees) of the four bars; the first is always the tonic.
+const PROGRESSIONS: [[i32; 4]; 4] = [
+    [0, 5, 2, 6], // i - VI - III - VII
+    [0, 3, 4, 0], // i - iv - v - i
+    [0, 6, 5, 6], // i - VII - VI - VII
+    [0, 2, 5, 4], // i - III - VI - v
 ];
+
+/// Bass patterns: four quarter notes per bar as (scale-degree offset from the chord root, octave).
+const BASS_PATTERNS: [[(i32, i32); 4]; 3] = [
+    [(0, 0), (0, 1), (0, 0), (0, 1)],
+    [(0, 0), (0, 0), (4, 0), (0, 0)],
+    [(0, 0), (4, 0), (0, 1), (4, 0)],
+];
+
+/// Everything that makes one level's tune: derived from the level number only.
+#[derive(Clone, Debug, PartialEq)]
+struct MusicSpec {
+    /// Semitones from A4 of the tonic (lead octave).
+    root: i32,
+    scale: [i32; 7],
+    progression: [i32; 4],
+    bass: usize,
+    /// Length of one eighth note in milliseconds.
+    eighth_ms: u32,
+    lead_wave: Wave,
+    /// Seeds the melody.
+    seed: u32,
+}
+
+/// Small xorshift generator (deterministic on every platform).
+struct Rng(u32);
+
+impl Rng {
+    fn new(seed: u32) -> Self {
+        let mut r = Self(seed.wrapping_mul(0x9E37_79B9) ^ 0x5bd1_e995);
+        if r.0 == 0 {
+            r.0 = 1;
+        }
+        for _ in 0..4 {
+            r.next();
+        }
+        r
+    }
+
+    fn next(&mut self) -> u32 {
+        self.0 ^= self.0 << 13;
+        self.0 ^= self.0 >> 17;
+        self.0 ^= self.0 << 5;
+        self.0
+    }
+
+    fn below(&mut self, n: u32) -> u32 {
+        self.next() % n
+    }
+}
+
+/// The spec of the tune of the level with index `level` (0-based).
+fn music_spec(level: usize) -> MusicSpec {
+    let mut r = Rng::new(level as u32 + 1);
+    MusicSpec {
+        root: r.below(8) as i32 - 5,
+        scale: SCALES[r.below(SCALES.len() as u32) as usize],
+        progression: PROGRESSIONS[r.below(PROGRESSIONS.len() as u32) as usize],
+        bass: r.below(BASS_PATTERNS.len() as u32) as usize,
+        eighth_ms: 110 + 10 * r.below(5),
+        lead_wave: if r.below(3) == 0 {
+            Wave::Triangle
+        } else {
+            Wave::Square
+        },
+        seed: r.next(),
+    }
+}
+
+/// Semitones of scale degree `degree` (any integer; every 7 degrees are an octave) from the root.
+fn degree_semitones(scale: &[i32; 7], degree: i32) -> i32 {
+    scale[degree.rem_euclid(7) as usize] + 12 * degree.div_euclid(7)
+}
 
 fn hz(semitones: i32) -> f32 {
     440.0 * 2f32.powf(semitones as f32 / 12.0)
 }
 
-/// Eight seconds-ish music loop (4 bars in A minor, lead + bass), seamless when repeated.
-pub fn music() -> Vec<f32> {
+/// The lead melody as scale degrees (one per eighth): chord tones on the strong beats, a random
+/// walk between them; it starts on the tonic and ends a step beside it, so the loop resolves.
+fn lead_degrees(spec: &MusicSpec) -> [i32; LOOP_EIGHTHS] {
+    let mut r = Rng::new(spec.seed);
+    let mut out = [0; LOOP_EIGHTHS];
+    let mut prev = 0;
+    for (i, slot) in out.iter_mut().enumerate() {
+        let chord = spec.progression[i / 8];
+        let beat = i % 8;
+        let d = if i == 0 {
+            0
+        } else if i == LOOP_EIGHTHS - 1 {
+            if r.below(2) == 0 { 1 } else { -1 }
+        } else if beat % 4 == 0 {
+            chord + 2 * r.below(3) as i32 + 7 * (r.below(2) as i32)
+        } else {
+            (prev + r.below(5) as i32 - 2).clamp(-2, 9)
+        };
+        *slot = d;
+        prev = d;
+    }
+    out
+}
+
+/// Pushes a note of `ms` milliseconds: 85 % sounding, the rest a gap (it separates the notes and
+/// brings the signal to zero).
+fn note(tones: &mut Vec<Tone>, wave: Wave, semitones: i32, ms: u32, vol: f32) {
+    let f = hz(semitones);
+    let on = ms * 85 / 100;
+    tones.push(tone(wave, f, f, on, vol));
+    tones.push(tone(wave, f, f, ms - on, 0.0));
+}
+
+/// The looping background music of the level with index `level` (0-based): 4 bars, lead + bass,
+/// seamless when repeated. The same level always gives the same buffer.
+pub fn music(level: usize) -> Vec<f32> {
+    let spec = music_spec(level);
     let mut lead = Vec::new();
-    for note in LEAD {
-        match note {
-            Some(n) => {
-                let f = hz(n);
-                lead.push(tone(Wave::Square, f, f, EIGHTH_MS * 85 / 100, 0.13));
-                lead.push(tone(Wave::Square, f, f, EIGHTH_MS * 15 / 100, 0.0));
-            }
-            None => lead.push(tone(Wave::Square, 0.0, 0.0, EIGHTH_MS, 0.0)),
-        }
+    for d in lead_degrees(&spec) {
+        note(
+            &mut lead,
+            spec.lead_wave,
+            spec.root + degree_semitones(&spec.scale, d),
+            spec.eighth_ms,
+            0.13,
+        );
     }
     let mut bass = Vec::new();
-    for n in BASS {
-        let f = hz(n);
-        bass.push(tone(Wave::Triangle, f, f, EIGHTH_MS * 2 * 85 / 100, 0.3));
-        bass.push(tone(Wave::Triangle, f, f, EIGHTH_MS * 2 * 15 / 100, 0.0));
+    for chord in spec.progression {
+        for (offset, octave) in BASS_PATTERNS[spec.bass] {
+            let semis = degree_semitones(&spec.scale, chord + offset) + 12 * octave;
+            note(
+                &mut bass,
+                Wave::Triangle,
+                spec.root - 24 + semis,
+                spec.eighth_ms * 2,
+                0.3,
+            );
+        }
     }
     let (lead, bass) = (render(&lead), render(&bass));
     let len = lead.len().max(bass.len());
@@ -253,12 +341,41 @@ mod tests {
         assert_eq!(effect(Event::Smash), effect(Event::Smash));
     }
 
+    const LEVELS: usize = 12;
+
     #[test]
-    fn the_music_loop_is_in_range_and_the_expected_length() {
-        let m = music();
-        let expect = 32 * EIGHTH_MS as usize * RATE as usize / 1000;
-        assert!(m.len().abs_diff(expect) < 64, "{} vs {expect}", m.len());
-        let peak = m.iter().fold(0.0_f32, |p, v| p.max(v.abs()));
-        assert!(peak > 0.1 && peak <= 1.0, "{peak}");
+    fn every_level_loop_is_in_range_seamless_and_the_expected_length() {
+        for level in 0..LEVELS {
+            let m = music(level);
+            let expect = LOOP_EIGHTHS * music_spec(level).eighth_ms as usize * RATE as usize / 1000;
+            assert!(
+                m.len().abs_diff(expect) < 128,
+                "{level}: {} vs {expect}",
+                m.len()
+            );
+            let peak = m.iter().fold(0.0_f32, |p, v| p.max(v.abs()));
+            assert!(peak > 0.1 && peak <= 1.0, "{level}: {peak}");
+            assert!(m.iter().all(|v| v.is_finite()));
+            assert!(m[0].abs() < 0.05 && m[m.len() - 1].abs() < 0.05, "{level}");
+        }
+    }
+
+    #[test]
+    fn music_is_deterministic_and_differs_per_level() {
+        assert_eq!(music(3), music(3));
+        for a in 0..LEVELS {
+            for b in a + 1..LEVELS {
+                assert_ne!(music(a), music(b), "levels {a} and {b} sound the same");
+            }
+        }
+    }
+
+    #[test]
+    fn the_melody_starts_on_the_tonic_and_ends_beside_it() {
+        for level in 0..LEVELS {
+            let l = lead_degrees(&music_spec(level));
+            assert_eq!(l[0], 0);
+            assert_eq!(l[LOOP_EIGHTHS - 1].abs(), 1);
+        }
     }
 }

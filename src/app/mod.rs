@@ -71,8 +71,8 @@ pub struct App {
     about_win: ToolWindow,
     settings_win: ToolWindow,
     audio: Box<dyn Audio>,
-    /// The volume and music state last given to `audio`.
-    audio_applied: Option<(f32, bool)>,
+    /// The volume and music (level of the playing loop) last given to `audio`.
+    audio_applied: Option<(f32, Option<usize>)>,
     screen: Screen,
     game: GameSession,
     /// Saved progress and where it is kept.
@@ -175,14 +175,15 @@ impl App {
         self.last_save = self.now;
     }
 
-    /// Gives the sound settings and the music state (music plays while a game runs) to the audio.
+    /// Gives the sound settings and the music (the loop of the played level, while a game runs) to the audio.
     fn sync_audio(&mut self) {
         let volume = if self.cfg.muted { 0.0 } else { self.cfg.volume };
-        let music = volume > 0.0
+        let playing = volume > 0.0
             && self.cfg.music
             && self.screen == Screen::Game
             && !self.game.is_paused()
             && self.game.state.status == crate::game::Status::Playing;
+        let music = playing.then_some(self.game.level);
         if self.audio_applied != Some((volume, music)) {
             self.audio.set_volume(volume);
             self.audio.set_music(music);

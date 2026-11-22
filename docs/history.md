@@ -144,6 +144,9 @@ What was done when (one line per issue / release) and the open ideas of the owne
   stopped the reload shows the title screen, after a new stamp the hint appears and one click loads the new worker
   and deletes the old cache. Not verified: adding to the home screen on Android / iOS (→ #20). The release web zip
   must stamp `sw.js` too (→ #19).
+- **#38 Music per level** – `synth::music(level)` generates a different 4-bar tune for every level from the level
+  number (seeded root / scale / progression / bass / tempo / lead wave); `Audio::set_music(Option<level>)`, the
+  library renders the loop on demand, a level change replaces the loop. Unit-tested; wasm not yet verified in the browser.
 
 ## Open ideas
 

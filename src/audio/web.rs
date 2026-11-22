@@ -17,7 +17,7 @@ pub struct WebAudio {
     engine: Option<Engine>,
     lib: Library,
     volume: f32,
-    music_on: bool,
+    music_level: Option<usize>,
     music: Option<AudioBufferSourceNode>,
 }
 
@@ -27,7 +27,7 @@ impl WebAudio {
             engine: None,
             lib: Library::new(),
             volume: 0.0,
-            music_on: false,
+            music_level: None,
             music: None,
         }
     }
@@ -81,20 +81,21 @@ impl Audio for WebAudio {
         }
     }
 
-    fn set_music(&mut self, on: bool) {
-        if on == self.music_on {
+    fn set_music(&mut self, level: Option<usize>) {
+        if level == self.music_level {
             return;
         }
-        if on {
-            let music = self.lib.music();
+        if let Some(m) = self.music.take() {
+            // web-sys marks both `stop` variants deprecated (the spec still has them).
+            #[allow(deprecated)]
+            let _ = m.stop();
+        }
+        self.music_level = None;
+        if let Some(l) = level {
+            let music = self.lib.music(l);
             self.music = self.start(&music, true);
-            self.music_on = self.music.is_some();
-        } else {
-            self.music_on = false;
-            if let Some(m) = self.music.take() {
-                // web-sys marks both `stop` variants deprecated (the spec still has them).
-                #[allow(deprecated)]
-                let _ = m.stop();
+            if self.music.is_some() {
+                self.music_level = level;
             }
         }
     }

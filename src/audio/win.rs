@@ -70,7 +70,7 @@ enum Cmd {
 pub struct WinAudio {
     tx: Sender<Cmd>,
     lib: Library,
-    music_on: bool,
+    music: Option<usize>,
 }
 
 impl WinAudio {
@@ -84,7 +84,7 @@ impl WinAudio {
         Some(Self {
             tx,
             lib: Library::new(),
-            music_on: false,
+            music: None,
         })
     }
 }
@@ -100,10 +100,10 @@ impl Audio for WinAudio {
         let _ = self.tx.send(Cmd::Volume(volume));
     }
 
-    fn set_music(&mut self, on: bool) {
-        if on != self.music_on {
-            self.music_on = on;
-            let _ = self.tx.send(Cmd::Music(on.then(|| self.lib.music())));
+    fn set_music(&mut self, level: Option<usize>) {
+        if level != self.music {
+            self.music = level;
+            let _ = self.tx.send(Cmd::Music(level.map(|l| self.lib.music(l))));
         }
     }
 }
@@ -235,9 +235,9 @@ mod tests {
         let mut a = WinAudio::new().unwrap();
         a.set_volume(0.2);
         a.play(Event::LevelComplete);
-        a.set_music(true);
+        a.set_music(Some(0));
         std::thread::sleep(Duration::from_millis(1200));
-        a.set_music(false);
+        a.set_music(None);
         a.play(Event::Smash);
         std::thread::sleep(Duration::from_millis(400));
         drop(a);

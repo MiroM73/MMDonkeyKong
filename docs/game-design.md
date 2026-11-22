@@ -149,7 +149,8 @@ Pages. The README explains that it is a homage to the arcade genre.
 
 - Original characters: hero **Jumper**, ape **Kong-o-Tron** (working names, may change).
 - Graphics: retro pixel art drawn in code, no image files.
-- Audio: chip-tune generated in code, music and effects.
+- Audio: chip-tune generated in code, music and effects; every level has its own generated
+  background tune (same family, different key / scale / tempo / bass).
 - Progress / saves are kept **per difficulty** (continue state, scores, high scores). A level
   completed on any difficulty is **unlocked for every other difficulty** (unlocking is shared,
   scores are not).

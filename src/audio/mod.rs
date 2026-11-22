@@ -20,8 +20,9 @@ pub trait Audio {
     fn play(&mut self, event: Event);
     /// The master volume, 0..1 (0 is mute).
     fn set_volume(&mut self, volume: f32);
-    /// Starts or stops the looping music.
-    fn set_music(&mut self, on: bool);
+    /// Plays the looping music of the level with this index, or stops it (`None`); a different
+    /// level replaces the playing loop.
+    fn set_music(&mut self, level: Option<usize>);
 }
 
 /// Silent output (tests, systems without a backend, no sound device).
@@ -32,7 +33,7 @@ pub struct NullAudio;
 impl Audio for NullAudio {
     fn play(&mut self, _event: Event) {}
     fn set_volume(&mut self, _volume: f32) {}
-    fn set_music(&mut self, _on: bool) {}
+    fn set_music(&mut self, _level: Option<usize>) {}
 }
 
 /// The sound output of this platform.
@@ -57,6 +58,6 @@ mod tests {
         let mut a = NullAudio;
         a.play(Event::Jump);
         a.set_volume(0.5);
-        a.set_music(true);
+        a.set_music(Some(2));
     }
 }

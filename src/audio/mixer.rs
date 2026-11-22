@@ -6,10 +6,10 @@ use std::sync::Arc;
 use super::synth;
 use crate::game::Event;
 
-/// Every sound effect and the music, rendered once; the buffers are shared (`Arc`).
+/// Every sound effect, rendered once; the buffers are shared (`Arc`). The music of a level is
+/// rendered when it is asked for (not all loops at start-up).
 pub struct Library {
     effects: Vec<(Event, Arc<[f32]>)>,
-    music: Arc<[f32]>,
 }
 
 impl Library {
@@ -33,7 +33,6 @@ impl Library {
                 .into_iter()
                 .map(|e| (e, Arc::from(synth::effect(e))))
                 .collect(),
-            music: Arc::from(synth::music()),
         }
     }
 
@@ -44,8 +43,9 @@ impl Library {
             .map(|(_, s)| s.clone())
     }
 
-    pub fn music(&self) -> Arc<[f32]> {
-        self.music.clone()
+    /// The music loop of the level with index `level`.
+    pub fn music(&self, level: usize) -> Arc<[f32]> {
+        Arc::from(synth::music(level))
     }
 }
 
@@ -188,6 +188,6 @@ mod tests {
         let lib = Library::new();
         assert!(lib.effect(Event::Jump).is_some());
         assert!(lib.effect(Event::GameOver).is_some());
-        assert!(!lib.music().is_empty());
+        assert!(!lib.music(0).is_empty());
     }
 }
