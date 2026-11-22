@@ -5,8 +5,6 @@
 )]
 
 mod app;
-// The audio trait is not used by the front end yet (issue #16); the allow is removed then.
-#[allow(dead_code)]
 mod audio;
 mod config;
 mod game;

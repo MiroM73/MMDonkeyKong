@@ -32,6 +32,11 @@ impl App {
                 });
                 self.controls_menu(ui);
                 self.language_menu(ui);
+                ui.separator();
+                if ui.button(t!("menu.view.settings")).clicked() {
+                    ui.close();
+                    self.show_settings = true;
+                }
             });
             ui.menu_button(t!("menu.help"), |ui| {
                 if ui.button(t!("menu.help.about")).clicked() {
@@ -56,7 +61,12 @@ impl App {
 
     /// View → Controls: when the on-screen buttons show, their size and side, vibration.
     fn controls_menu(&mut self, ui: &mut egui::Ui) {
-        ui.menu_button(t!("menu.view.controls"), |ui| {
+        ui.menu_button(t!("menu.view.controls"), |ui| self.controls_widgets(ui));
+    }
+
+    /// The controls settings (shared by the View menu and the Settings window).
+    pub(in crate::app) fn controls_widgets(&mut self, ui: &mut egui::Ui) {
+        {
             for (value, key) in [
                 ("auto", "controls.auto"),
                 ("on", "controls.on"),
@@ -91,7 +101,7 @@ impl App {
             {
                 self.cfg_dirty = true;
             }
-        });
+        }
     }
 
     /// View → Language: automatic, every available language, reload of the language files.

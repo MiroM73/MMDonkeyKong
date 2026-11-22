@@ -72,8 +72,8 @@ browser and is unit-tested.
 - `FixedStep` (`timestep.rs`): the accumulator. `advance(dt)` returns how many 60 Hz
   (`STEP_HZ`) steps to run; the remainder carries over, a stall is capped at 0.1 s (the excess is
   dropped), NaN / negative `dt` is ignored.
-- `Event` is what the front end turns into sound / effects. `src/audio.rs` has the `Audio` trait
-  (`NullAudio`; its `mod` line in `main.rs` carries `#[allow(dead_code)]` until #16 uses it),
+- `Event` is what the front end turns into sound / effects. `src/audio/` has the `Audio` trait
+  (see Sound, #16),
   `src/storage.rs` the `Storage` trait (see Saved progress).
 
 ### Level format (`level.rs`, `levels.rs`, `levels/*.txt`, #6)
@@ -334,3 +334,25 @@ barrels turn with their x, the ape shows the throw for `APE_THROW_STEPS` after a
 
 `cargo test`: `i18n` (file format, completeness of the built-in languages, language resolution),
 `config` (defaults of a partial file), `icon` (pixels and `.ico` layout).
+
+### Sound (`src/audio/`, #16)
+- `synth.rs`: pure rendering of `Tone`s (square / triangle / noise, linear frequency slide,
+  2 ms attack + decay) into mono `f32` buffers at 22 050 Hz. `effect(Event)` and `music()` (a 4-bar
+  A-minor loop, lead + bass) are deterministic and unit-tested (range, length, no clipping).
+- `mixer.rs`: `Library` renders every buffer once (`Arc<[f32]>`); `Mixer` adds voices (max 8
+  effects, the oldest is dropped; one looping music voice) and clips to -1..1.
+- `win.rs` (Windows): a thread owns a `waveOut` device (winmm declared directly, `// SAFETY:`
+  comments), four 512-sample buffers, commands arrive through an `mpsc` channel; while nothing plays
+  and all buffers are done it blocks on the channel (no idle CPU). Dropping `WinAudio` ends it. No sound
+  device → the thread ends and the game stays silent. Manual test: `cargo test -- --ignored plays_on`.
+- `web.rs` (wasm): Web Audio; the `AudioContext` is created on the first sound and `resume()`d on
+  every play (browsers need a user gesture first). Other systems use `NullAudio`.
+- Front end: `App::sync_audio` (every frame) gives the volume (`Config::muted` / `volume`) and the
+  music state (on while a game runs, not paused, `Config::music`) to the backend only when they
+  change; `run_steps` plays every `Event`.
+
+### Settings window (#17)
+`dialogs/settings.rs`: sound (mute, volume, music), display scale (the UI zoom), theme, language,
+difficulty and the controls (`controls_widgets`, shared with View → Controls). Opened from
+View → Settings… and the title screen item. It is a plain `egui::Window` like About (see the
+follow-up issue about moving both to separate OS windows).

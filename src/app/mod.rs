@@ -26,6 +26,7 @@ use std::time::Duration;
 
 use eframe::egui;
 
+use crate::audio::{self, Audio};
 use crate::config::Config;
 use crate::save::SaveData;
 use crate::storage::{self, Storage};
@@ -64,6 +65,10 @@ pub struct App {
     /// Code of the language in use, e.g. "sk".
     lang_code: String,
     show_about: bool,
+    show_settings: bool,
+    audio: Box<dyn Audio>,
+    /// The volume and music state last given to `audio`.
+    audio_applied: Option<(f32, bool)>,
     screen: Screen,
     game: GameSession,
     /// Saved progress and where it is kept.
@@ -93,6 +98,9 @@ impl App {
             last_save: cc.egui_ctx.input(|i| i.time),
             now: cc.egui_ctx.input(|i| i.time),
             show_about: false,
+            show_settings: false,
+            audio: audio::platform_audio(),
+            audio_applied: None,
             screen: Screen::Title,
             // Only the placeholder behind the title screen; every game starts with the frame time.
             game: GameSession::new(1, 0, difficulty, None, 0),
@@ -158,6 +166,21 @@ impl App {
         self.last_save = self.now;
     }
 
+    /// Gives the sound settings and the music state (music plays while a game runs) to the audio.
+    fn sync_audio(&mut self) {
+        let volume = if self.cfg.muted { 0.0 } else { self.cfg.volume };
+        let music = volume > 0.0
+            && self.cfg.music
+            && self.screen == Screen::Game
+            && !self.game.is_paused()
+            && self.game.state.status == crate::game::Status::Playing;
+        if self.audio_applied != Some((volume, music)) {
+            self.audio.set_volume(volume);
+            self.audio.set_music(music);
+            self.audio_applied = Some((volume, music));
+        }
+    }
+
     fn info(&mut self, s: String) {
         self.status_info = Some((s, self.now));
     }
@@ -192,6 +215,8 @@ impl eframe::App for App {
             });
 
         self.about_window(&ctx);
+        self.settings_window(&ctx);
+        self.sync_audio();
         self.save_config(false);
         // Keep the status message timeout and the delayed settings write running while idle.
         if self.cfg_dirty || self.status_info.is_some() {

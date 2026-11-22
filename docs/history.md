@@ -92,6 +92,11 @@ What was done when (one line per issue / release) and the open ideas of the owne
   automated check is a smoke test (every level on every difficulty runs deterministically, keeps its
   hammers and a positive bonus). Level 7 is close to level 3 (the generator has one lifts layout).
 
+- **#16 Sound** – synthesised effects + music loop (`src/audio/`), `waveOut` backend on Windows,
+  Web Audio in the browser, silent elsewhere; mute / volume / music in `Config`.
+- **#17 Settings** – Settings window (View → Settings…, title screen item): sound, display scale,
+  theme, language, difficulty, controls; About shows credits; new keys in all four languages.
+
 ## Open ideas
 
 - _(none yet)_

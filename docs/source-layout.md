@@ -26,7 +26,7 @@ The files of `src/` and the conventions of the code.
 | `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `player.rs`, `barrel.rs` (barrels and springs), `fireball.rs`, `difficulty.rs` (the five steps and their parameter table), `level.rs` (format, parser, `to_text`), `validate.rs` (validator), `levelgen.rs` (generator from seeds), `levels.rs` (embedded files), `input.rs`, `rng.rs`, `timestep.rs` (fixed step) |
 | `src/storage.rs` | `Storage` trait, `FileStorage` (atomic write), `WebStorage` (`localStorage`), `NullStorage`, `platform_storage()` |
 | `src/save.rs` | `SaveData`: versioned progress, unlock / continue / best-score rules, load with backup of a damaged file (pure) |
-| `src/audio.rs` | `Audio` trait + `NullAudio` (real backends: #16) |
+| `src/audio/` | `mod.rs` `Audio` trait, `NullAudio`, `platform_audio()`; `synth.rs` chip-tune tones + effects + music; `mixer.rs` `Library` + `Mixer`; `win.rs` waveOut thread; `web.rs` Web Audio |
 | `levels/*.txt` | level data, embedded with `include_str!` (`src/game/levels.rs`); format: `docs/architecture.md` → Level format |
 | `src/config.rs` | `Config` (serde defaults), load / atomic save |
 | `src/i18n.rs` | `t!()` macro, language files, built-in languages, completeness test |

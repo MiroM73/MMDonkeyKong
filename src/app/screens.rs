@@ -143,6 +143,7 @@ enum TitleItem {
     LevelSelect,
     HighScores,
     Difficulty,
+    Settings,
     /// Closes the window (desktop only: a web page cannot be closed by the program).
     #[cfg(not(target_arch = "wasm32"))]
     Exit,
@@ -154,6 +155,7 @@ const TITLE_ITEMS: &[TitleItem] = &[
     TitleItem::LevelSelect,
     TitleItem::HighScores,
     TitleItem::Difficulty,
+    TitleItem::Settings,
     #[cfg(not(target_arch = "wasm32"))]
     TitleItem::Exit,
 ];
@@ -208,6 +210,7 @@ impl App {
                 TitleItem::LevelSelect => (t!("title.levels"), true),
                 TitleItem::HighScores => (t!("title.scores"), true),
                 TitleItem::Difficulty => (t!("title.difficulty", name = t!(diff.key())), true),
+                TitleItem::Settings => (t!("title.settings"), true),
                 #[cfg(not(target_arch = "wasm32"))]
                 TitleItem::Exit => (t!("menu.file.exit"), true),
             };
@@ -238,6 +241,7 @@ impl App {
             Some(TitleItem::LevelSelect) => self.enter_level_select(),
             Some(TitleItem::HighScores) => self.enter_high_scores(),
             Some(TitleItem::Difficulty) => self.step_difficulty(1),
+            Some(TitleItem::Settings) => self.show_settings = true,
             #[cfg(not(target_arch = "wasm32"))]
             Some(TitleItem::Exit) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
             None => {}

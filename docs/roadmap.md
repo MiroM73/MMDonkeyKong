@@ -69,8 +69,8 @@ and browser problems are found early, not at the end.
 ## Phase 7 – sound and polish
 | Issue | What | Status |
 |-------|------|--------|
-| 16 | Synthesised sound effects and music, native + Web Audio backends, mute / volume | open |
-| 17 | Menus, title screen, settings, translations (en / sk / cs / de), About / credits | open |
+| 16 | Synthesised sound effects and music, native + Web Audio backends, mute / volume | done |
+| 17 | Menus, title screen, settings, translations (en / sk / cs / de), About / credits | done |
 
 ## Phase 8 – offline and release
 | Issue | What | Status |

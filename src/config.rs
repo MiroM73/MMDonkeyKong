@@ -36,6 +36,12 @@ pub struct Config {
     pub left_handed: bool,
     /// Vibrate when the hero dies (browsers that support it, i.e. phones).
     pub vibration: bool,
+    /// Sound switched off (Settings -> Sound).
+    pub muted: bool,
+    /// Master volume 0..1.
+    pub volume: f32,
+    /// Play the music loop during a game.
+    pub music: bool,
     /// The difficulty of the next level that starts (Game -> Difficulty).
     pub difficulty: Difficulty,
     /// The name entered for the last high score (the next entry starts with it).
@@ -52,6 +58,9 @@ impl Default for Config {
             touch_size: 1.0,
             left_handed: false,
             vibration: true,
+            muted: false,
+            volume: 0.7,
+            music: true,
             difficulty: Difficulty::Normal,
             last_name: "AAA".into(),
         }

@@ -12,6 +12,7 @@ impl App {
             .show(ctx, |ui| {
                 ui.heading(base_title());
                 ui.label(t!("about.text"));
+                ui.label(t!("about.credits"));
                 ui.label(t!("about.language", code = &self.lang_code));
             });
     }

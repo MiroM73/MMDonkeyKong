@@ -168,7 +168,7 @@ impl App {
             }
             self.game.effects.retain(|e| e.age < scene::EXPLOSION_STEPS);
             for event in events {
-                // Sounds follow with issue #16.
+                self.audio.play(event);
                 if event == Event::Died && self.cfg.vibration {
                     vibrate(200);
                 }
