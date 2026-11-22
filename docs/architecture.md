@@ -150,7 +150,8 @@ lives and score). `Event::LevelComplete` -> `on_level_complete` (unlock + autosa
 Enter / tap then goes to the next level with lives and score carried; game over restarts the same
 level with zero score; after the **last** level the confetti runs, Enter opens the question
 "Play again / Quit to the title screen". The pause screen is a menu (Resume, Level select, Back to the title screen =
-autosave and leave). A failing storage is reported in the status bar, the game goes on.
+autosave and leave, Exit = autosave and close the window; Exit is also an item of the title screen;
+both are desktop-only, a web page cannot be closed by the program). A failing storage is reported in the status bar, the game goes on.
 
 ### Level select (`src/app/level_select.rs`, #12)
 

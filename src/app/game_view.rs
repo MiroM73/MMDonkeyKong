@@ -400,6 +400,12 @@ impl App {
                     self.persist();
                     self.enter_level_select();
                 }
+                #[cfg(not(target_arch = "wasm32"))]
+                Some(PauseChoice::Exit) => {
+                    // The progress is saved first; `on_exit` writes the settings.
+                    self.persist();
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                }
                 Some(PauseChoice::Title) => {
                     // Leaving a level through the menu: the progress is saved first.
                     self.persist();

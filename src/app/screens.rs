@@ -143,14 +143,19 @@ enum TitleItem {
     LevelSelect,
     HighScores,
     Difficulty,
+    /// Closes the window (desktop only: a web page cannot be closed by the program).
+    #[cfg(not(target_arch = "wasm32"))]
+    Exit,
 }
 
-const TITLE_ITEMS: [TitleItem; 5] = [
+const TITLE_ITEMS: &[TitleItem] = &[
     TitleItem::Continue,
     TitleItem::NewGame,
     TitleItem::LevelSelect,
     TitleItem::HighScores,
     TitleItem::Difficulty,
+    #[cfg(not(target_arch = "wasm32"))]
+    TitleItem::Exit,
 ];
 
 impl App {
@@ -203,6 +208,8 @@ impl App {
                 TitleItem::LevelSelect => (t!("title.levels"), true),
                 TitleItem::HighScores => (t!("title.scores"), true),
                 TitleItem::Difficulty => (t!("title.difficulty", name = t!(diff.key())), true),
+                #[cfg(not(target_arch = "wasm32"))]
+                TitleItem::Exit => (t!("menu.file.exit"), true),
             };
             let resp = menu_item(&mut child, &text, size, self.menu.title == i, enabled);
             if enabled && hover_moves(&child, &resp) && self.menu.title != i {
@@ -231,6 +238,8 @@ impl App {
             Some(TitleItem::LevelSelect) => self.enter_level_select(),
             Some(TitleItem::HighScores) => self.enter_high_scores(),
             Some(TitleItem::Difficulty) => self.step_difficulty(1),
+            #[cfg(not(target_arch = "wasm32"))]
+            Some(TitleItem::Exit) => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
             None => {}
         }
         // A gamepad cannot wake the app: poll it (see `game_ui`).
@@ -266,6 +275,8 @@ impl App {
             (t!("pause.resume"), PauseChoice::Resume),
             (t!("pause.levels"), PauseChoice::LevelSelect),
             (t!("pause.title"), PauseChoice::Title),
+            #[cfg(not(target_arch = "wasm32"))]
+            (t!("menu.file.exit"), PauseChoice::Exit),
         ];
         let size = egui::vec2(ITEM_W.min(field.width() - 16.0), ITEM_H);
         let mut child = ui.new_child(
@@ -350,6 +361,8 @@ pub(in crate::app) enum PauseChoice {
     Resume,
     LevelSelect,
     Title,
+    #[cfg(not(target_arch = "wasm32"))]
+    Exit,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
