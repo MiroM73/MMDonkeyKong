@@ -91,6 +91,9 @@ On every other step the bonus just stays at 0. Every level gives at least 100 s 
 Difficulty only scales parameters; it never changes level geometry. High scores are kept per
 difficulty.
 
+Goal of the table: a weak player can finish every level on Relaxed, a very good player every level on
+Insane. The balance bots check it (`docs/architecture.md` -> Balance bots, #34).
+
 ## Progress, saving and level selection
 
 - **Autosave after every completed level** (and when the player leaves a level through the menu):
