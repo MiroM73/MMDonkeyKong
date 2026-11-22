@@ -50,6 +50,7 @@ difficulty.normal = Normal
 difficulty.hard = Schwer
 difficulty.insane = Wahnsinn
 difficulty.note = Gilt ab dem nächsten Levelstart.
+difficulty.timeout_note = Wahnsinn: Läuft der Zeitbonus ab, verlierst du ein Leben.
 game.next = Enter drücken oder auf den Bildschirm tippen für das nächste Level
 game.victory = Geschafft! Alle Level sind abgeschlossen. Punkte {score}
 game.victory_hint = Enter drücken oder auf den Bildschirm tippen

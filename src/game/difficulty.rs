@@ -34,6 +34,8 @@ pub struct Params {
     pub hammer_delta: i32,
     /// Every point (jumps, smashes, the time bonus) in percent; the extra-life score scales too.
     pub score_pct: u32,
+    /// The player loses a life when the time bonus reaches 0 (Insane only).
+    pub bonus_timeout: bool,
 }
 
 impl Difficulty {
@@ -72,6 +74,7 @@ impl Difficulty {
             ladder_chance,
             hammer_delta,
             score_pct,
+            bonus_timeout: self == Difficulty::Insane,
         }
     }
 }
@@ -108,6 +111,9 @@ mod tests {
             assert!(w[0].score_pct < w[1].score_pct);
         }
         assert!(p[0].lives > p[4].lives);
+        // Only the hardest step has the time limit.
+        assert!(p[..4].iter().all(|p| !p.bonus_timeout));
+        assert!(p[4].bonus_timeout);
         assert!(p[0].hammer_delta > p[4].hammer_delta);
     }
 

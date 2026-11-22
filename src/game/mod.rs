@@ -53,6 +53,8 @@ pub enum Event {
     Jump,
     Land,
     Died,
+    /// The time bonus ran out (only on difficulties with `bonus_timeout`); comes with `Died`.
+    TimeUp,
     Respawn,
     HammerPickup,
     /// A barrel was smashed with the hammer.
@@ -225,6 +227,11 @@ impl GameState {
             rng: Rng::new(seed),
             level,
         }
+    }
+
+    /// The bonus is nearly used up (the last five drops, ~10 s) and running out kills: the HUD warns.
+    pub fn bonus_low(&self) -> bool {
+        self.params.bonus_timeout && self.bonus <= 5 * self.level.bonus_drop
     }
 
     /// The geometry that never moves (without the lift platforms): what the background shows.
@@ -407,6 +414,13 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
     if state.bonus_in == 0 {
         state.bonus = state.bonus.saturating_sub(state.level.bonus_drop);
         state.bonus_in = state.level.bonus_every;
+        // On the hardest steps an empty bonus costs a life (as in the original); the bonus then
+        // starts again from the full value so the respawn does not lead straight to the next one.
+        if state.params.bonus_timeout && state.bonus == 0 && state.player.kill().is_some() {
+            state.bonus = state.level.bonus;
+            die(state, &mut events);
+            events.push(Event::TimeUp);
+        }
     }
     events
 }
@@ -736,6 +750,35 @@ mod tests {
         let every = s.level.bonus_every as usize;
         idle(&mut s, every * 2);
         assert_eq!(s.bonus, 0);
+    }
+
+    #[test]
+    fn on_insane_an_empty_bonus_costs_a_life_and_resets() {
+        let mut s = GameState::start(level(), 1, Difficulty::Insane, None, 0);
+        s.barrel_in = u32::MAX;
+        s.bonus = s.level.bonus_drop;
+        let lives = s.lives;
+        assert!(s.bonus_low());
+        let every = s.level.bonus_every as usize;
+        let ev = idle(&mut s, every);
+        assert!(ev.contains(&Event::TimeUp) && ev.contains(&Event::Died));
+        assert_eq!(s.lives, lives - 1);
+        assert_eq!(s.bonus, s.level.bonus);
+        assert!(!s.bonus_low());
+    }
+
+    #[test]
+    fn below_insane_an_empty_bonus_is_harmless() {
+        for d in [Difficulty::Relaxed, Difficulty::Normal, Difficulty::Hard] {
+            let mut s = GameState::start(level(), 1, d, None, 0);
+            s.barrel_in = u32::MAX;
+            s.bonus = s.level.bonus_drop;
+            let every = s.level.bonus_every as usize;
+            let ev = idle(&mut s, every * 3);
+            assert!(!ev.contains(&Event::TimeUp), "{d:?}");
+            assert_eq!((s.bonus, s.lives), (0, s.params.lives), "{d:?}");
+            assert!(!s.bonus_low());
+        }
     }
 
     #[test]

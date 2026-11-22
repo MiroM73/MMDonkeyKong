@@ -92,6 +92,7 @@ fn effect_tones(event: Event) -> Vec<Tone> {
             tone(Square, 600.0, 120.0, 520, 0.28),
             tone(Noise, 700.0, 200.0, 160, 0.25),
         ],
+        Event::TimeUp => vec![sq(880.0, 90), sq(660.0, 90), sq(880.0, 90), sq(660.0, 140)],
         Event::Respawn => vec![sq(392.0, 70), sq(523.0, 70), sq(659.0, 110)],
         Event::HammerPickup => vec![sq(523.0, 55), sq(659.0, 55), sq(784.0, 55), sq(1047.0, 120)],
         Event::Smash => vec![
@@ -208,10 +209,11 @@ pub fn music() -> Vec<f32> {
 mod tests {
     use super::*;
 
-    const ALL: [Event; 11] = [
+    const ALL: [Event; 12] = [
         Event::Jump,
         Event::Land,
         Event::Died,
+        Event::TimeUp,
         Event::Respawn,
         Event::HammerPickup,
         Event::Smash,

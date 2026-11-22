@@ -98,6 +98,10 @@ What was done when (one line per issue / release) and the open ideas of the owne
   theme, language, difficulty, controls; About shows credits; new keys in all four languages.
 - **#33 Lift landing** – a falling hero no longer slips through a rising lift (the landing test now has
   a small slack); the fall distance rule (32 px, as in the original) is unchanged.
+- **#35 Insane time limit** – on Insane the hero loses a life when the time bonus reaches 0 (`Params::bonus_timeout`,
+  `Event::TimeUp` with its own sound); the bonus restarts from its full value; the HUD bonus blinks red
+  during the last five drops; Hard keeps the old behaviour (open: decide after playing). The balance bots
+  mentioned in the issue are not in the repository yet, so the "waiting" check is still open.
 
 ## Open ideas
 

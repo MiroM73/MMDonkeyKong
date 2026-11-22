@@ -160,8 +160,10 @@ print_generated_level -- --ignored --nocapture` (the crate is a binary, so there
 `Difficulty` (Relaxed, Easy, Normal, Hard, Insane; serde name = lowercase) and `Params`, one table
 in `Difficulty::params()`: `lives`, `obstacle_speed` (multiplies the barrel speed), `spawn_interval_pct`
 (percent of the level's `barrel_every`), `ladder_chance` (`num` in `den`, drawn as
-`rng.below(den) < num`, so Normal `1/3` consumes the `Rng` exactly as before), `hammer_delta` and
-`score_pct`. `GameState::start(level, seed, difficulty, lives, score)` applies them once, to its own
+`rng.below(den) < num`, so Normal `1/3` consumes the `Rng` exactly as before), `hammer_delta`,
+`score_pct` and `bonus_timeout` (Insane only: when `step()` drops the bonus to 0 the player is killed,
+`Event::TimeUp` follows `Died`, the bonus is reset to the level's full value; `GameState::bonus_low()`
+makes the HUD blink). `GameState::start(level, seed, difficulty, lives, score)` applies them once, to its own
 copy of the level: `barrel_every`, `bonus`, `bonus_drop` and `extra_life` are scaled, hammers are
 added from the level's `bonus_hammer` lines (Relaxed +2, Easy +1; as many as the level has) or the
 last ones removed (Insane -1, never the last one); `add_score` scales jump / smash points. `lives` /

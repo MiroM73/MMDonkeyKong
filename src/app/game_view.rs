@@ -336,12 +336,19 @@ impl App {
             egui::FontId::monospace(6.0 * scale / ppp),
             HUD,
         );
+        // Where running out of bonus kills, the last seconds blink red so the death is no surprise.
+        let warn = st.bonus_low() && st.status == Status::Playing;
+        let bonus_color = if warn && ((self.now * 4.0) as u64).is_multiple_of(2) {
+            egui::Color32::from_rgb(255, 70, 60)
+        } else {
+            HUD
+        };
         painter.text(
             to_screen(FIELD_W as f32 / 2.0, 2.0),
             egui::Align2::CENTER_TOP,
             t!("game.bonus", bonus = st.bonus),
             hud.clone(),
-            HUD,
+            bonus_color,
         );
         painter.text(
             to_screen(FIELD_W as f32 - 4.0, 2.0),

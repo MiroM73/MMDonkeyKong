@@ -98,6 +98,7 @@ impl App {
             }
         });
         ui.label(t!("difficulty.note"));
+        ui.label(t!("difficulty.timeout_note"));
 
         ui.separator();
         ui.heading(t!("settings.controls"));

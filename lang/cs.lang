@@ -50,6 +50,7 @@ difficulty.normal = Normální
 difficulty.hard = Těžká
 difficulty.insane = Šílená
 difficulty.note = Platí od další spuštěné úrovně.
+difficulty.timeout_note = Šílená: když se vyčerpá časový bonus, ztratíš život.
 game.next = Stiskni Enter nebo klepni na obrazovku pro další level
 game.victory = Zvládl jsi to! Všechny levely jsou dokončené. Skóre {score}
 game.victory_hint = Stiskni Enter nebo klepni na obrazovku

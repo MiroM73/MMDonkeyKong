@@ -85,6 +85,9 @@ Chosen in the new-game screen and changeable in the settings between levels:
 | 5 | Insane | 2 | 1.45× | 0.65× | high | −1 | 2.0× |
 
 The numbers are a first proposal (a `Difficulty` struct in code, one table, tuned by playing). Hammer count: the level file lists its own `hammer` lines and optional `bonus_hammer` lines; "extra" = +2, "+1" = +1 of those (as many as the level has), "−1" removes one hammer (never the last). The extra-life score and the time bonus scale with the score multiplier.
+**Time limit (Insane only):** when the time bonus reaches 0 the player loses a life (as in the original)
+and the bonus starts again from its full value; the bonus blinks red during its last ~10 seconds.
+On every other step the bonus just stays at 0. Every level gives at least 100 s (5000 / 100 per 2 s).
 Difficulty only scales parameters; it never changes level geometry. High scores are kept per
 difficulty.
 

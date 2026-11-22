@@ -18,6 +18,7 @@ impl Library {
             Event::Jump,
             Event::Land,
             Event::Died,
+            Event::TimeUp,
             Event::Respawn,
             Event::HammerPickup,
             Event::Smash,

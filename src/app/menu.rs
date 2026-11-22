@@ -57,6 +57,7 @@ impl App {
         }
         ui.separator();
         ui.label(t!("difficulty.note"));
+        ui.label(t!("difficulty.timeout_note"));
     }
 
     /// View → Controls: when the on-screen buttons show, their size and side, vibration.

@@ -50,6 +50,7 @@ difficulty.normal = Normal
 difficulty.hard = Hard
 difficulty.insane = Insane
 difficulty.note = Applies from the next level that starts.
+difficulty.timeout_note = Insane: you lose a life when the time bonus runs out.
 game.next = Press Enter or tap the screen for the next level
 game.victory = You made it! Every level is complete. Score {score}
 game.victory_hint = Press Enter or tap the screen to continue
