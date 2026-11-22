@@ -127,6 +127,12 @@ What was done when (one line per issue / release) and the open ideas of the owne
   hunting, not from the number of fireballs – and Hard differs from Normal only a little more (→ final pass #15).
 - **#29 Lifts II** – level 7 is a hand-written two-stage climb (two rising lifts, a middle floor, a ledge, a
   ladder); the generator got the same layout as a second `lifts` variant chosen by the seed.
+- **#31 Platform verification** – CI of `3ca47d9` is green on all three jobs (Linux clippy + tests, wasm32 clippy +
+  Trunk build, Windows). The deployed Pages build was opened in Chrome with a save that unlocks all levels: levels 2-8
+  (conveyors, lifts, rivets, their second variants) load and render, belts / lifts / fireballs are drawn, pause and
+  level select work, no console errors. Not verified: on-screen touch controls (no touch device available, the
+  buttons do not show on a desktop browser) and a byte-for-byte comparison of `levelgen` output between wasm and
+  native - to be checked on a phone (#20).
 
 ## Open ideas
 
