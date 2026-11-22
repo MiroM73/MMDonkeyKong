@@ -96,9 +96,9 @@ device**. Three steps, in this order:
 
 ## Building on Linux and macOS
 
-Only the Windows exe is released. The README gets a section "Build on Linux / macOS": install
+Only the Windows exe is released. The README has a section "Build on Linux / macOS": install
 Rust, on Linux the packages eframe needs (`libx11`, `libxkbcommon`, `libwayland`, `libgl`,
-`libasound2-dev` when native audio uses ALSA - exact list verified in CI on Ubuntu), then
+`libasound2-dev` when native audio uses ALSA - CI installs only `libudev-dev` + `pkg-config`; the window libraries are not exercised there), then
 `cargo run --release`; on macOS Xcode command line tools and `cargo run --release`. CI already
 builds and tests on Linux; macOS is documented but not tested by CI (an optional `macos-latest`
 job can be added later). The web version needs no build at all for those users.

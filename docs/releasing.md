@@ -22,6 +22,15 @@ How the Windows release archives are built and published (maintainer information
   *What's fixed*, *Removed*, then the *Full Changelog* link) from `docs/history.md` and
   `git log v<prev>..v<new>`: `gh release edit v<version> --notes-file <file>`.
 
+## The web bundle in the release
+
+The workflow `release.yml` has three jobs: `windows` (tests, build, `.exe` + `.zip`), `web` (Trunk build with
+`--public-url "./"`, relative URLs so the folder works behind any static server; `__BUILD__` in `sw.js` is replaced
+by the tag; `LICENSE` and `web/README-OFFLINE.txt` as `README.txt` added; zipped as `mmdonkeykong-web.zip` with a
+`.sha256`) and `draft-release` (runs for tags only, downloads both artifacts and creates the draft). A manual run
+only produces the two workflow artifacts. Try the bundle locally: `trunk build --release --public-url "./"`, then
+`python -m http.server 8081 -d dist`.
+
 ## The web version (GitHub Pages)
 
 `.github/workflows/pages.yml` builds the browser version with Trunk (a prebuilt, checksum-verified

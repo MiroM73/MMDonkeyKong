@@ -1,6 +1,7 @@
-# Builds the Windows release and packages it as a self-extracting archive and a plain ZIP.
-# - push of a tag "v*"  -> creates a draft GitHub release with both archives and their .sha256
-# - manual run          -> only uploads the archives as a workflow artifact (for testing)
+# Builds the Windows release (self-extracting archive + plain ZIP) and the offline web bundle
+# (mmdonkeykong-web.zip, the Trunk output with relative URLs).
+# - push of a tag "v*"  -> creates a draft GitHub release with all archives and their .sha256
+# - manual run          -> only uploads the archives as workflow artifacts (for testing)
 name: Release
 
 on:
@@ -10,6 +11,11 @@ on:
 
 permissions:
   contents: write
+
+env:
+  TRUNK_VERSION: v0.22.2
+  # SHA-256 of trunk-x86_64-unknown-linux-gnu.tar.gz of that release (same as pages.yml / ci.yml).
+  TRUNK_SHA256: 26fca8a9952e46cd7d8b8b9a2e2c1786c090fc14b8e10b6678ab4d0f9f1a385f
 
 jobs:
   windows:
@@ -37,11 +43,58 @@ jobs:
           name: mmdonkeykong-windows
           path: dist/*
 
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Update Rust toolchain
+        run: rustup update stable && rustup default stable && rustup target add wasm32-unknown-unknown
+
+      - name: Install Trunk
+        run: |
+          curl -sSfL -o trunk.tar.gz "https://github.com/trunk-rs/trunk/releases/download/${TRUNK_VERSION}/trunk-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${TRUNK_SHA256}  trunk.tar.gz" | sha256sum -c -
+          tar -xzf trunk.tar.gz trunk
+          sudo mv trunk /usr/local/bin/trunk
+
+      # Relative URLs: the bundle works from any folder behind a static server (docs/platforms.md).
+      - name: Build
+        run: trunk build --release --public-url "./"
+
+      # The service worker cache is named after this stamp (same mechanism as pages.yml).
+      - name: Stamp the service worker and zip
+        run: |
+          STAMP="${GITHUB_REF_NAME}"
+          [ "${GITHUB_REF_TYPE}" = tag ] || STAMP="${GITHUB_SHA}"
+          sed -i "s/__BUILD__/${STAMP}/" dist/sw.js
+          grep -n "const BUILD" dist/sw.js
+          cp LICENSE dist/LICENSE
+          cp web/README-OFFLINE.txt dist/README.txt
+          mkdir -p out
+          (cd dist && zip -r -q ../out/mmdonkeykong-web.zip . -x ".trunk-lock")
+          (cd out && sha256sum mmdonkeykong-web.zip > mmdonkeykong-web.zip.sha256)
+          ls -l out
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mmdonkeykong-web
+          path: out/*
+
+  draft-release:
+    if: github.ref_type == 'tag'
+    needs: [windows, web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: assets
+          merge-multiple: true
+
       - name: Create draft release
-        if: github.ref_type == 'tag'
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          gh release create '${{ github.ref_name }}' (Get-ChildItem dist/*) `
-            --draft --title 'MMDonkeyKong ${{ github.ref_name }}' --generate-notes
+          ls -l assets
+          gh release create '${{ github.ref_name }}' assets/*             --draft --title 'MMDonkeyKong ${{ github.ref_name }}' --generate-notes

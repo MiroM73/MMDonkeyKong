@@ -147,6 +147,10 @@ What was done when (one line per issue / release) and the open ideas of the owne
 - **#38 Music per level** – `synth::music(level)` generates a different 4-bar tune for every level from the level
   number (seeded root / scale / progression / bass / tempo / lead wave); `Audio::set_music(Option<level>)`, the
   library renders the loop on demand, a level change replaces the loop. Unit-tested; wasm not yet verified in the browser.
+- 2026-11-22: #19 release preparation: `release.yml` builds the offline web bundle `mmdonkeykong-web.zip`
+  (Trunk, relative URLs, stamped service worker) and attaches it to the draft release next to the exe;
+  README sections Play online / Play offline / Build on Linux / macOS / Build the web version.
+  The release itself (version, notes) is run by the owner.
 
 ## Open ideas
 

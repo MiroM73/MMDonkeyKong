@@ -76,7 +76,7 @@ and browser problems are found early, not at the end.
 | Issue | What | Status |
 |-------|------|--------|
 | 18 | PWA: manifest, icons, service worker, "add to home screen", offline check | done (home-screen install on a phone left to #20) |
-| 19 | Windows exe release (existing scripts), web zip attached to the release, README with the play link and the Linux / macOS build instructions | open |
+| 19 | Windows exe release (existing scripts), web zip attached to the release, README with the play link and the Linux / macOS build instructions | done (the release itself is run by the owner) |
 | 20 | Test on real phone / tablet / browsers, performance and battery check, fix list | open |
 
 ## Phase 9 – after the first release
