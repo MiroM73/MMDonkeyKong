@@ -1,0 +1,51 @@
+# Level 4 - Rivets. Same format as level 1 (see docs/architecture.md -> Level format).
+# Walk over every rivet to pull it out; the last one wins the level (the goal is only the
+# friend's place). The ape sends fireballs that hunt the hero over the floors and ladders.
+name: Rivets
+type: rivets
+
+bonus: 8000
+bonus_drop: 100
+bonus_every: 2
+# A new fireball every `barrel_every` seconds (at most four at a time).
+barrel_every: 6
+extra_life: 15000
+
+start: 20 248
+ape: 100 60
+goal: 140 60
+
+# girder: x0 y0 x1 y1   (x0 < x1)
+girder: 0 248 224 248
+girder: 8 200 216 200
+girder: 8 152 216 152
+girder: 8 104 216 104
+girder: 56 60 168 60
+
+# rivet: x y   (on a girder surface; all of them must be reachable)
+rivet: 24 200
+rivet: 200 200
+rivet: 24 152
+rivet: 200 152
+rivet: 24 104
+rivet: 200 104
+rivet: 64 60
+rivet: 160 60
+
+# ladder: x top bottom [broken]
+ladder: 48 200 248
+ladder: 176 200 248
+ladder: 80 152 200
+ladder: 144 152 200 broken
+ladder: 48 104 152
+ladder: 176 104 152
+ladder: 90 60 104
+ladder: 140 60 104
+
+# hammer: x y
+hammer: 112 200
+hammer: 112 104
+
+# bonus_hammer: x y   (extra hammers, only on the easier difficulties; Relaxed +2, Easy +1)
+bonus_hammer: 112 152
+bonus_hammer: 112 248

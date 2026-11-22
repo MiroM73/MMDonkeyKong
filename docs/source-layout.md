@@ -23,7 +23,7 @@ The files of `src/` and the conventions of the code.
 | `src/app/high_scores.rs` | the high-score screen with difficulty tabs |
 | `src/app/progress.rs` | `impl App`: load / autosave the save, Continue / New game, what happens when a level ends |
 | `src/app/dialogs/` | one file per window (`about.rs`) |
-| `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `player.rs`, `barrel.rs`, `difficulty.rs` (the five steps and their parameter table), `level.rs` (format, parser, `to_text`), `validate.rs` (validator), `levelgen.rs` (generator from seeds), `levels.rs` (embedded files), `input.rs`, `rng.rs`, `timestep.rs` (fixed step) |
+| `src/game/` | platform-independent game: `mod.rs` (`GameState`, `step`, `Event`), `player.rs`, `barrel.rs` (barrels and springs), `fireball.rs`, `difficulty.rs` (the five steps and their parameter table), `level.rs` (format, parser, `to_text`), `validate.rs` (validator), `levelgen.rs` (generator from seeds), `levels.rs` (embedded files), `input.rs`, `rng.rs`, `timestep.rs` (fixed step) |
 | `src/storage.rs` | `Storage` trait, `FileStorage` (atomic write), `WebStorage` (`localStorage`), `NullStorage`, `platform_storage()` |
 | `src/save.rs` | `SaveData`: versioned progress, unlock / continue / best-score rules, load with backup of a damaged file (pure) |
 | `src/audio.rs` | `Audio` trait + `NullAudio` (real backends: #16) |

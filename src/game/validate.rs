@@ -2,7 +2,7 @@
 //! tests of every shipped level and by the generator (`levelgen.rs`), which re-rolls a level that
 //! fails. The limits come from the player constants, so a change of the physics changes them too.
 
-use super::level::Level;
+use super::level::{Level, LevelKind};
 use super::player::{FALL_LIMIT, GRAVITY, HIT_HEIGHT, JUMP_VY, SNAP, WALK_SPEED};
 use super::{Geometry, Girder};
 
@@ -203,6 +203,15 @@ pub fn validate(level: &Level) -> Result<(), String> {
     }
     if !seen[goal] {
         return Err("the goal cannot be reached from the start".into());
+    }
+    if level.kind == LevelKind::Rivets && level.rivets.is_empty() {
+        return Err("a rivets level needs rivets".into());
+    }
+    for &(x, y) in &level.rivets {
+        let gi = on(x, y).ok_or_else(|| format!("the rivet at ({x}, {y}) is not on a girder"))?;
+        if !seen[gi] {
+            return Err(format!("the rivet at ({x}, {y}) cannot be reached"));
+        }
     }
     for ((x, y), gi) in hammers.iter().zip(&hammer_girders) {
         if !seen[*gi] {

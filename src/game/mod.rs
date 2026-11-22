@@ -6,6 +6,7 @@
 
 mod barrel;
 mod difficulty;
+mod fireball;
 mod input;
 mod level;
 // No front end generates levels yet (the editor, #25, and the tests do).
@@ -19,6 +20,7 @@ mod validate;
 
 pub use barrel::{Barrel, BarrelMode, SPRING_VX};
 pub use difficulty::{Difficulty, Params};
+pub use fireball::Fireball;
 pub use input::Input;
 pub use level::{LIFT_WIDTH, Level, LevelKind};
 pub use levels::{builtin as builtin_level, count as level_count};
@@ -58,6 +60,8 @@ pub enum Event {
     /// The player jumped over a barrel.
     JumpedBarrel,
     ExtraLife,
+    /// A rivet was removed.
+    Rivet,
     LevelComplete,
     GameOver,
 }
@@ -81,6 +85,12 @@ pub const HAMMER_STEPS: u32 = 10 * STEP_HZ;
 const FIRST_BARREL_STEPS: u32 = STEP_HZ;
 pub const SCORE_JUMP: u32 = 100;
 pub const SCORE_SMASH: u32 = 300;
+pub const SCORE_RIVET: u32 = 100;
+/// Score of a fireball smashed with the hammer, and how many fireballs the ape keeps alive.
+pub const SCORE_FIRE: u32 = 500;
+const MAX_FIREBALLS: usize = 4;
+/// How close (horizontally) the hero must walk over a rivet to remove it.
+const RIVET_REACH: f32 = 4.0;
 /// Half size of a hammer item and the reach of the swung hammer in front of the player.
 const HAMMER_ITEM_R: f32 = 5.0;
 const HAMMER_REACH: f32 = 12.0;
@@ -111,6 +121,9 @@ pub struct GameState {
     pub level: Level,
     pub player: Player,
     pub barrels: Vec<Barrel>,
+    pub fireballs: Vec<Fireball>,
+    /// Rivets still in place.
+    pub rivets: Vec<(f32, f32)>,
     /// Hammer items still lying around.
     pub hammers: Vec<(f32, f32)>,
     /// Steps left of the hammer in the player's hand (0 = none).
@@ -186,6 +199,8 @@ impl GameState {
             tick: 0,
             player: Player::new(level.start),
             barrels: Vec::new(),
+            fireballs: Vec::new(),
+            rivets: level.rivets.clone(),
             hammers: level.hammers.clone(),
             hammer_left: 0,
             lifts,
@@ -316,6 +331,7 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
                 return events;
             }
             state.barrels.clear();
+            state.fireballs.clear();
             state.barrel_in = FIRST_BARREL_STEPS;
         }
         None => {}
@@ -342,11 +358,17 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
     state.barrel_in = state.barrel_in.saturating_sub(1);
     if state.barrel_in == 0 {
         let (ax, ay) = state.level.ape;
-        state.barrels.push(if state.level.kind == LevelKind::Lifts {
-            Barrel::spring(ax + 16.0, ay - 8.0, SPRING_VX * state.params.obstacle_speed)
+        if state.level.kind == LevelKind::Rivets {
+            if state.fireballs.len() < MAX_FIREBALLS {
+                state.fireballs.push(Fireball::new(ax + 16.0, ay, 1));
+            }
         } else {
-            Barrel::thrown(ax + 16.0, ay - 8.0, 1)
-        });
+            state.barrels.push(if state.level.kind == LevelKind::Lifts {
+                Barrel::spring(ax + 16.0, ay - 8.0, SPRING_VX * state.params.obstacle_speed)
+            } else {
+                Barrel::thrown(ax + 16.0, ay - 8.0, 1)
+            });
+        }
         state.barrel_in = state.level.barrel_every;
     }
     for i in 0..state.barrels.len() {
@@ -360,6 +382,19 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
         b.step(&state.level.geometry, &mut state.rng, &state.params);
     }
     state.barrels.retain(|b| !b.is_gone());
+
+    // The fireballs hunt the player.
+    let target = (state.player.x, state.player.y);
+    for f in &mut state.fireballs {
+        f.step(
+            &state.level.geometry,
+            &mut state.rng,
+            &state.params,
+            target,
+            state.tick,
+        );
+    }
+    state.fireballs.retain(|f| !f.is_gone());
 
     if !state.player.is_dead() {
         player_meets_world(state, &mut events);
@@ -415,6 +450,36 @@ fn player_meets_world(state: &mut GameState, events: &mut Vec<Event>) {
         }
     }
 
+    // The hammer burns fireballs too.
+    if state.hammer_left > 0 {
+        let zone = state.hammer_rect();
+        let before = state.fireballs.len();
+        state.fireballs.retain(|f| !f.rect().overlaps(zone));
+        for _ in state.fireballs.len()..before {
+            state.add_score(SCORE_FIRE, events);
+            events.push(Event::Smash);
+        }
+    }
+
+    // Walking over a rivet removes it; the last one completes the rivets level.
+    if state.player.is_walking() {
+        let (px, py) = (state.player.x, state.player.y);
+        let before = state.rivets.len();
+        state
+            .rivets
+            .retain(|&(x, y)| (x - px).abs() > RIVET_REACH || (y - py).abs() > RIVET_REACH);
+        for _ in state.rivets.len()..before {
+            state.add_score(SCORE_RIVET, events);
+            events.push(Event::Rivet);
+        }
+        if state.level.kind == LevelKind::Rivets && state.rivets.is_empty() {
+            state.score += state.bonus;
+            state.status = Status::Complete;
+            events.push(Event::LevelComplete);
+            return;
+        }
+    }
+
     // Jumping over a barrel: the feet pass just above it.
     if state.player.is_airborne() {
         let (px, py) = (state.player.x, state.player.y);
@@ -436,15 +501,20 @@ fn player_meets_world(state: &mut GameState, events: &mut Vec<Event>) {
         }
     }
 
-    // A barrel that touches the player kills.
-    if state.barrels.iter().any(|b| state.player.hit_by(b.rect())) && state.player.kill().is_some()
+    // A barrel or a fireball that touches the player kills.
+    if (state.barrels.iter().any(|b| state.player.hit_by(b.rect()))
+        || state
+            .fireballs
+            .iter()
+            .any(|f| state.player.hit_by(f.rect())))
+        && state.player.kill().is_some()
     {
         die(state, events);
         return;
     }
 
-    // The goal.
-    if hit.overlaps(state.goal_rect()) {
+    // The goal (on the rivets level the rivets decide).
+    if state.level.kind != LevelKind::Rivets && hit.overlaps(state.goal_rect()) {
         state.score += state.bonus;
         state.status = Status::Complete;
         events.push(Event::LevelComplete);
@@ -889,5 +959,76 @@ mod tests {
         s.player.y = 248.0;
         let events = idle(&mut s, 200);
         assert!(events.contains(&Event::Died));
+    }
+
+    fn rivets() -> GameState {
+        let mut s = GameState::new(builtin_level(3), 1);
+        s.barrel_in = u32::MAX;
+        s
+    }
+
+    #[test]
+    fn walking_over_a_rivet_removes_it_and_scores() {
+        let mut s = rivets();
+        assert_eq!(s.rivets.len(), 8);
+        s.player.x = 24.0;
+        s.player.y = 200.0;
+        let ev = idle(&mut s, 2);
+        assert_eq!(s.rivets.len(), 7);
+        assert!(ev.contains(&Event::Rivet));
+        assert_eq!(s.score, 100);
+        // Not walking: a jump over a rivet leaves it.
+        s.player.x = 200.0;
+        s.player.y = 140.0;
+        s.player.mode = Mode::Airborne {
+            vx: 0.0,
+            vy: 0.0,
+            top: 100.0,
+        };
+        idle(&mut s, 1);
+        assert_eq!(s.rivets.len(), 7);
+    }
+
+    #[test]
+    fn the_last_rivet_completes_the_level_and_the_goal_does_not() {
+        let mut s = rivets();
+        let last = s.rivets.pop().unwrap();
+        s.rivets.truncate(1);
+        s.rivets = vec![last];
+        s.player.x = last.0;
+        s.player.y = last.1;
+        let ev = idle(&mut s, 1);
+        assert_eq!(s.status, Status::Complete);
+        assert!(ev.contains(&Event::LevelComplete));
+        // Standing at the friend with rivets left does nothing.
+        let mut s = rivets();
+        s.player.x = s.level.goal.0;
+        s.player.y = s.level.goal.1;
+        idle(&mut s, 5);
+        assert_eq!(s.status, Status::Playing);
+    }
+
+    #[test]
+    fn a_fireball_kills_and_the_hammer_burns_it() {
+        let mut s = rivets();
+        s.fireballs.push(Fireball::new(20.0, 248.0, 1));
+        let ev = idle(&mut s, 1);
+        assert!(ev.contains(&Event::Died));
+        let mut s = rivets();
+        s.hammer_left = HAMMER_STEPS;
+        s.fireballs.push(Fireball::new(26.0, 248.0, 1));
+        let ev = idle(&mut s, 1);
+        assert!(ev.contains(&Event::Smash));
+        assert!(s.fireballs.is_empty());
+        assert_eq!(s.score, 500);
+    }
+
+    #[test]
+    fn the_ape_sends_at_most_four_fireballs() {
+        let mut s = GameState::new(builtin_level(3), 1);
+        s.player.mode = Mode::Dead { left: u32::MAX };
+        idle(&mut s, 3000);
+        assert!(s.barrels.is_empty());
+        assert!(!s.fireballs.is_empty() && s.fireballs.len() <= 4);
     }
 }

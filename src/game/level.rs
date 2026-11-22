@@ -5,7 +5,7 @@
 //! `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
 //! `hammer x y`, `bonus_hammer x y`, `conveyor girder left|right seconds` (the girder is the
 //! 0-based number of its `girder` line; the belt reverses every `seconds`, 0 = never),
-//! `lift x top bottom up|down` (a platform that rides between the surface heights `top` and
+//! `rivet x y` (rivets level: remove them all to win), `lift x top bottom up|down` (a platform that rides between the surface heights `top` and
 //! `bottom` and starts again at the other end). Errors carry the line number (`ParseError`).
 
 use std::fmt;
@@ -17,11 +17,17 @@ pub enum LevelKind {
     Barrels,
     Conveyors,
     Lifts,
+    Rivets,
 }
 
 impl LevelKind {
     /// Every level type (the generator tests loop over it).
-    pub const ALL: &[LevelKind] = &[LevelKind::Barrels, LevelKind::Conveyors, LevelKind::Lifts];
+    pub const ALL: &[LevelKind] = &[
+        LevelKind::Barrels,
+        LevelKind::Conveyors,
+        LevelKind::Lifts,
+        LevelKind::Rivets,
+    ];
 
     /// The name used after `type:` in a level file.
     pub fn as_str(self) -> &'static str {
@@ -29,6 +35,7 @@ impl LevelKind {
             LevelKind::Barrels => "barrels",
             LevelKind::Conveyors => "conveyors",
             LevelKind::Lifts => "lifts",
+            LevelKind::Rivets => "rivets",
         }
     }
 }
@@ -79,6 +86,8 @@ pub struct Level {
     pub belts: Vec<Belt>,
     /// Lifts (the `lifts` type).
     pub lifts: Vec<Lift>,
+    /// Rivets to remove (the `rivets` type: removing the last one completes the level).
+    pub rivets: Vec<(f32, f32)>,
 }
 
 /// A problem in a level file; `line` is 1-based, 0 means the file as a whole.
@@ -183,6 +192,7 @@ impl Level {
         let mut bonus_hammers = Vec::new();
         let mut belts = Vec::new();
         let mut lifts = Vec::new();
+        let mut rivets = Vec::new();
 
         for (i, raw) in text.lines().enumerate() {
             let line = i + 1;
@@ -248,6 +258,7 @@ impl Level {
                     dup(goal.is_some())?;
                     goal = Some(point(line, key, value)?);
                 }
+                "rivet" => rivets.push(point(line, key, value)?),
                 "hammer" => hammers.push(point(line, key, value)?),
                 "bonus_hammer" => bonus_hammers.push(point(line, key, value)?),
                 "conveyor" => {
@@ -337,6 +348,7 @@ impl Level {
             bonus_hammers,
             belts,
             lifts,
+            rivets,
         };
         if let Some(b) = level
             .belts
@@ -386,6 +398,9 @@ impl Level {
             for h in list {
                 lines.push(format!("{key}: {} {}", h.0, h.1));
             }
+        }
+        for r in &self.rivets {
+            lines.push(format!("rivet: {} {}", r.0, r.1));
         }
         for b in &self.belts {
             let dir = if b.dir < 0 { "left" } else { "right" };
@@ -477,6 +492,7 @@ mod tests {
             include_str!("../../levels/01-barrels.txt"),
             include_str!("../../levels/02-conveyors.txt"),
             include_str!("../../levels/03-lifts.txt"),
+            include_str!("../../levels/04-rivets.txt"),
         ] {
             let l = Level::parse(text).unwrap();
             assert_eq!(Level::parse(&l.to_text()).unwrap(), l);

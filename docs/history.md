@@ -81,6 +81,9 @@ What was done when (one line per issue / release) and the open ideas of the owne
 - 2026-11-22: #14 (part 2) Level 3 "Lifts": `lift:` lines, lifts as moving girders (the player and the
   barrels reuse the ground code), springs that bounce along the floors (`BarrelMode::Bouncing`), lift /
   spring sprites, generator support. Checked in the running exe (lifts moving, spring, hammers).
+- 2026-11-22: #14 (part 3) Level 4 "Rivets": `rivet:` lines, rivets removed by walking over them (all of
+  them win the level), fireballs that hunt the hero over floors and ladders (`fireball.rs`), hammer burns
+  them, generator support. Checked in the running exe (rivets, fireballs, ladders). #14 is done.
 
 ## Open ideas
 

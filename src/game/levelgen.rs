@@ -35,11 +35,22 @@ pub fn generate(kind: LevelKind, seed: u64, size_hint: u32) -> Level {
     builtin_level(0)
 }
 
+fn kind_title(kind: LevelKind) -> &'static str {
+    match kind {
+        LevelKind::Barrels => "Barrels",
+        LevelKind::Conveyors => "Conveyors",
+        LevelKind::Lifts => "Lifts",
+        LevelKind::Rivets => "Rivets",
+    }
+}
+
 /// One candidate (not validated yet).
 fn build(kind: LevelKind, sub_seed: u64, size_hint: u32, name_seed: u64) -> Level {
     match kind {
         LevelKind::Lifts => lifts(sub_seed, name_seed),
-        LevelKind::Barrels | LevelKind::Conveyors => stacked(kind, sub_seed, size_hint, name_seed),
+        LevelKind::Barrels | LevelKind::Conveyors | LevelKind::Rivets => {
+            stacked(kind, sub_seed, size_hint, name_seed)
+        }
     }
 }
 
@@ -49,6 +60,8 @@ fn build(kind: LevelKind, sub_seed: u64, size_hint: u32, name_seed: u64) -> Leve
 /// the last, running towards the open end and reversing every 5–9 s.
 fn stacked(kind: LevelKind, seed: u64, size_hint: u32, name_seed: u64) -> Level {
     let belts_level = kind == LevelKind::Conveyors;
+    // Only the barrels have sloped floors.
+    let flat = kind != LevelKind::Barrels;
     let mut rng = Rng::new(seed);
     let n = size_hint.clamp(*FLOORS.start(), *FLOORS.end()) as usize;
     let spacing = (BOTTOM_Y - TOP_Y) / (n - 1) as f32;
@@ -56,13 +69,13 @@ fn stacked(kind: LevelKind, seed: u64, size_hint: u32, name_seed: u64) -> Level 
     for i in 0..n {
         let base = BOTTOM_Y - i as f32 * spacing;
         let g = if i == 0 {
-            Girder::new(0.0, 248.0, 224.0, if belts_level { 248.0 } else { 240.0 })
+            Girder::new(0.0, 248.0, 224.0, if flat { 248.0 } else { 240.0 })
         } else if i == n - 1 {
             Girder::new(0.0, TOP_Y, (130 + 10 * rng.range(0, 4)) as f32, TOP_Y)
         } else {
             // Steeper floors need more room between them (see MIN_CLEARANCE).
             let steepest = ((spacing - 24.0) as i32).clamp(6, 10);
-            let drop = if belts_level {
+            let drop = if flat {
                 0.0
             } else {
                 rng.range(6, steepest) as f32
@@ -152,13 +165,27 @@ fn stacked(kind: LevelKind, seed: u64, size_hint: u32, name_seed: u64) -> Level 
     } else {
         Vec::new()
     };
-    // 1.5 to 4 seconds in half-second steps (written back as exact seconds).
-    let barrel_every = (STEP_HZ / 2) * rng.range(3, 8) as u32;
+    // 1.5 to 4 seconds in half-second steps (written back as exact seconds); fireballs come
+    // slower (4 to 8 seconds).
+    let barrel_every = if kind == LevelKind::Rivets {
+        STEP_HZ * rng.range(4, 8) as u32
+    } else {
+        (STEP_HZ / 2) * rng.range(3, 8) as u32
+    };
+    // Rivets sit near the ends of every floor above the bottom one.
+    let rivets: Vec<(f32, f32)> = if kind == LevelKind::Rivets {
+        (1..n)
+            .flat_map(|i| {
+                let g = girders[i];
+                let left = if i == n - 1 { g.x0 + 40.0 } else { g.x0 + 16.0 };
+                [left, g.x1 - 16.0].map(|x| (x, r1(g.y_at(x).unwrap_or(0.0))))
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
     Level {
-        name: format!(
-            "{} {name_seed}",
-            if belts_level { "Conveyors" } else { "Barrels" }
-        ),
+        name: format!("{} {name_seed}", kind_title(kind)),
         kind,
         bonus: 5000,
         bonus_drop: 100,
@@ -173,6 +200,7 @@ fn stacked(kind: LevelKind, seed: u64, size_hint: u32, name_seed: u64) -> Level 
         bonus_hammers,
         belts,
         lifts: Vec::new(),
+        rivets,
     }
 }
 
@@ -237,6 +265,7 @@ fn lifts(seed: u64, name_seed: u64) -> Level {
         bonus_hammers: vec![(30.0, 248.0), (190.0, 248.0)],
         belts: Vec::new(),
         lifts,
+        rivets: Vec::new(),
     }
 }
 

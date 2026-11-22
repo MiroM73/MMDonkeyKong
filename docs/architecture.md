@@ -78,10 +78,10 @@ browser and is unit-tested.
 
 ### Level format (`level.rs`, `levels.rs`, `levels/*.txt`, #6)
 
-One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels`, `conveyors`, `lifts`), `bonus` /
+One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels`, `conveyors`, `lifts`, `rivets`), `bonus` /
 `bonus_drop` / `bonus_every` (seconds), `barrel_every` (seconds), `extra_life` (score),
 `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
-`lift x top bottom up|down`, `conveyor girder left|right seconds` (belt on the girder with that 0-based number, reverses every
+`rivet x y`, `lift x top bottom up|down`, `conveyor girder left|right seconds` (belt on the girder with that 0-based number, reverses every
 `seconds`, 0 = never), `hammer x y`, `bonus_hammer x y` (extra hammers of the easier difficulties; all in playfield pixels; ladder ends are girder surface heights). `Level::parse`
 reports syntax / range errors as `line N: message` (`ParseError`, line 0 = whole file, e.g. a
 missing key). `Level::validate` (rules in `validate.rs`) checks that start, goal, ape, hammers and ladder ends
@@ -127,6 +127,21 @@ bounces up with `SPRING_BOUNCE_VY` on every landing; springs use the barrel code
 smashes and jump-over points. Level 3 (`levels/03-lifts.txt`): start platform, rising lift, upper
 floor with a ladder to the ape, falling lift to the right-hand floor. The generator makes the same
 layout with jitter (`levelgen::lifts`).
+
+### Rivets and fireballs (`fireball.rs`, `Level::rivets`, `GameState::rivets`, #14)
+
+On the `rivets` type the level is won by removing every rivet (`rivet: x y` on a girder): a
+*walking* hero within 4 px of one pulls it out (`Event::Rivet`, 100 points); the last one adds the
+time bonus and completes the level; the goal point is only the friend's place (`step` ignores it
+for this type). The validator wants at least one rivet and every rivet reachable. The ape sends
+**fireballs** instead of barrels every `barrel_every` (at most four alive). `Fireball` walks a
+girder at 0.45 px/step (times the difficulty's obstacle speed), turns at the ends, every 45 steps
+turns towards the player with probability 2/3, and takes an intact ladder it passes (50 %) when
+that leads towards the player's floor (`target.1` more than 8 px above / below). A touch kills the
+hero, the hammer burns it (`Event::Smash`, 500 points); fireballs are cleared on respawn. The view
+draws the rivets as dots and the fireballs with the two `Fire` frames. Level 4
+(`levels/04-rivets.txt`) has three full floors, the ape's floor and eight rivets; the generator
+(`LevelKind::Rivets`) reuses the flat stacked floors and puts rivets near the floor ends.
 
 ### Level generator (`levelgen.rs`, #22)
 

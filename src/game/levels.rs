@@ -7,6 +7,7 @@ const FILES: &[&str] = &[
     include_str!("../../levels/01-barrels.txt"),
     include_str!("../../levels/02-conveyors.txt"),
     include_str!("../../levels/03-lifts.txt"),
+    include_str!("../../levels/04-rivets.txt"),
 ];
 
 /// Number of built-in levels.

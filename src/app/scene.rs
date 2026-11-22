@@ -119,6 +119,15 @@ fn draw_ladder(l: &Ladder, put: &mut impl FnMut(i32, i32, egui::Color32)) {
     }
 }
 
+/// The flickering frame of a fireball.
+pub(in crate::app) fn fire_sprite(tick: u64) -> Id {
+    if (tick / FIRE_STEPS).is_multiple_of(2) {
+        Id::Fire0
+    } else {
+        Id::Fire1
+    }
+}
+
 /// The sprite of the hero and whether it is mirrored. `moving`: the hero changed its position in
 /// the last step (a standing hero shows no walk cycle).
 pub(in crate::app) fn hero_sprite(p: &Player, tick: u64, moving: bool, hammer: bool) -> (Id, bool) {
@@ -250,6 +259,20 @@ pub(in crate::app) fn draw_scene(view: &View, st: &GameState, look: &Look) {
         );
     }
 
+    // The rivets still in place and the fireballs.
+    for &(x, y) in &st.rivets {
+        let c = view.origin + egui::vec2(x, y - 2.0) * view.unit;
+        view.painter.circle_filled(c, 2.5 * view.unit, RIVET);
+        view.painter.circle_stroke(
+            c,
+            2.5 * view.unit,
+            egui::Stroke::new(view.unit * 0.6, GIRDER_EDGE),
+        );
+    }
+    for f in &st.fireballs {
+        blit(fire_sprite(tick), f.x - 4.0, f.y - 10.0, f.mode_dir() < 0);
+    }
+
     // The hero (a blinking one is not needed: death is its own sprite).
     let p = &st.player;
     let (id, flip) = hero_sprite(p, tick, look.hero_moving, st.hammer_left > 0);
@@ -274,8 +297,6 @@ pub(in crate::app) fn draw_scene(view: &View, st: &GameState, look: &Look) {
     for e in look.effects {
         blit(explosion_sprite(e.age), e.x - 5.0, e.y - 5.0, false);
     }
-    // Fireballs have no source yet (#14); keep the frames reachable for the tests.
-    let _ = (Id::Fire0, Id::Fire1, FIRE_STEPS);
 }
 
 #[cfg(test)]
@@ -362,6 +383,12 @@ mod tests {
         assert_ne!(a.1, b.1, "hands and feet swap while climbing");
         p.mode = Mode::Dead { left: 10 };
         assert_eq!(hero_sprite(&p, 0, false, false).0, Id::HeroDead);
+    }
+
+    #[test]
+    fn fireballs_flicker() {
+        assert_ne!(fire_sprite(0), fire_sprite(FIRE_STEPS));
+        assert_eq!(fire_sprite(0), fire_sprite(2 * FIRE_STEPS));
     }
 
     #[test]
