@@ -96,6 +96,8 @@ What was done when (one line per issue / release) and the open ideas of the owne
   Web Audio in the browser, silent elsewhere; mute / volume / music in `Config`.
 - **#17 Settings** – Settings window (View → Settings…, title screen item): sound, display scale,
   theme, language, difficulty, controls; About shows credits; new keys in all four languages.
+- **#33 Lift landing** – a falling hero no longer slips through a rising lift (the landing test now has
+  a small slack); the fall distance rule (32 px, as in the original) is unchanged.
 
 ## Open ideas
 

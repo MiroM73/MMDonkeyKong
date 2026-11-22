@@ -118,7 +118,7 @@ heights `top` and `bottom` (`dir` -1 = up) at `LIFT_SPEED` (0.4 px/step, times t
 obstacle speed) and starts again at the other end. In `GameState::start` every lift becomes a short
 girder appended to `level.geometry.girders`; `step` moves them *before* the player, so the
 existing walking / landing / barrel code treats a lift as ground and a player standing on one
-rides with it (a lift that wraps takes its ground away: the hero falls). `GameState::scenery()` is
+rides with it (a lift that wraps takes its ground away: the hero falls). `Geometry::landing` accepts a surface up to `LANDING_SLACK` (1.5 px) above the feet, so a rising lift cannot move past a falling hero between two steps (#33). `GameState::scenery()` is
 the geometry without the lifts (the static background texture); the view draws `Id::Lift` at
 `GameState::lifts`. The validator joins every girder whose end lies next to a lift's ride (within
 a jump) with all the others near it, both ways. On the `lifts` type the ape drops **springs**

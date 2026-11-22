@@ -941,6 +941,29 @@ mod tests {
     }
 
     #[test]
+    fn a_falling_hero_never_slips_through_a_rising_lift() {
+        // The lift rises while the hero falls onto it: the landing must catch the hero for
+        // every start height, not only when the lift was below the feet on the previous step.
+        let mut missed = Vec::new();
+        for i in 0..400 {
+            let mut s = lifts();
+            s.player.x = 76.0;
+            let h = 8.0 + i as f32 * 0.05; // fall distance, within FALL_LIMIT
+            s.player.y = s.lifts[0] - h;
+            s.player.mode = Mode::Airborne {
+                vx: 0.0,
+                vy: 0.0,
+                top: s.player.y,
+            };
+            idle(&mut s, 40);
+            if s.player.y > s.lifts[0] + 1.0 {
+                missed.push(h);
+            }
+        }
+        assert!(missed.is_empty(), "slipped through for heights {missed:?}");
+    }
+
+    #[test]
     fn the_ape_drops_springs_on_the_lifts_level() {
         let mut s = GameState::new(builtin_level(2), 1);
         s.player.mode = Mode::Dead { left: u32::MAX };

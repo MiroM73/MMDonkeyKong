@@ -19,6 +19,9 @@ pub const MAX_FALL_SPEED: f32 = 6.0;
 pub const FALL_LIMIT: f32 = 32.0;
 /// How far below the feet a girder still counts as the ground (slope following, edge snapping).
 pub const SNAP: f32 = 4.0;
+/// How far above the feet a surface may be and still catch a falling player (a rising lift moves
+/// up to `LIFT_SPEED` times the obstacle speed per step).
+pub const LANDING_SLACK: f32 = 1.5;
 /// A ladder is grabbed when the player is at most this far from it horizontally.
 pub const LADDER_REACH: f32 = 4.0;
 /// A ladder can be grabbed in the air only when rising slower than this (not at take-off).
@@ -81,12 +84,14 @@ impl Geometry {
             .min_by(|a, b| (a - y).abs().total_cmp(&(b - y).abs()))
     }
 
-    /// First surface crossed when moving from height `from` to `to` (`from <= to`) at `x`.
+    /// First surface crossed when moving from height `from` to `to` (`from <= to`) at `x`. A
+    /// surface up to `LANDING_SLACK` above `from` counts too: a rising lift moves up past the feet
+    /// between two steps, and without the slack the hero would slip through it.
     pub(super) fn landing(&self, x: f32, from: f32, to: f32) -> Option<f32> {
         self.girders
             .iter()
             .filter_map(|g| g.y_at(x))
-            .filter(|s| *s >= from && *s <= to)
+            .filter(|s| *s >= from - LANDING_SLACK && *s <= to)
             .min_by(f32::total_cmp)
     }
 }
