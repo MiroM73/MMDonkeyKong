@@ -359,6 +359,35 @@ sprites! {
         ".KOYYOK.",
         "..KKKK..",
     ];
+    // A bouncing spring: stretched in the air, squashed on landing.
+    Spring0, false, [
+        "..KKKK..",
+        "..YYYY..",
+        ".KKKKKK.",
+        "..YYYY..",
+        ".KKKKKK.",
+        "..YYYY..",
+        ".KKKKKK.",
+        "..KKKK..",
+    ];
+    Spring1, false, [
+        "........",
+        "........",
+        "........",
+        "........",
+        ".KKKKKK.",
+        "KYYYYYYK",
+        "KKKKKKKK",
+        ".KKKKKK.",
+    ];
+    // A lift platform, 16 x 5.
+    Lift, false, [
+        "KKKKKKKKKKKKKKKK",
+        "KYYYYYYYYYYYYYYK",
+        "KNNNNNNNNNNNNNNK",
+        "KNKNKNKNKNKNKNKK",
+        "KKKKKKKKKKKKKKKK",
+    ];
     Explosion0, false, [
         "..........",
         "..........",
@@ -481,7 +510,16 @@ mod tests {
         for id in [ApeIdle, ApeBeat, ApeThrow] {
             assert_eq!(size(id), [24, 24], "{id:?}");
         }
-        for id in [Barrel0, Barrel1, Barrel2, Barrel3, BarrelFront] {
+        assert_eq!(size(Lift), [16, 5]);
+        for id in [
+            Barrel0,
+            Barrel1,
+            Barrel2,
+            Barrel3,
+            BarrelFront,
+            Spring0,
+            Spring1,
+        ] {
             assert_eq!(size(id), [8, 8], "{id:?}");
         }
         assert_eq!(size(Friend), [12, 16]);

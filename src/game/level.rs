@@ -4,7 +4,9 @@
 //! `type`, `bonus`, `bonus_drop`, `bonus_every` (seconds), `barrel_every` (seconds), `extra_life`,
 //! `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
 //! `hammer x y`, `bonus_hammer x y`, `conveyor girder left|right seconds` (the girder is the
-//! 0-based number of its `girder` line; the belt reverses every `seconds`, 0 = never). Errors carry the line number (`ParseError`).
+//! 0-based number of its `girder` line; the belt reverses every `seconds`, 0 = never),
+//! `lift x top bottom up|down` (a platform that rides between the surface heights `top` and
+//! `bottom` and starts again at the other end). Errors carry the line number (`ParseError`).
 
 use std::fmt;
 
@@ -14,17 +16,19 @@ use super::{FIELD_H, FIELD_W, Geometry, Girder, Ladder, STEP_HZ};
 pub enum LevelKind {
     Barrels,
     Conveyors,
+    Lifts,
 }
 
 impl LevelKind {
     /// Every level type (the generator tests loop over it).
-    pub const ALL: &[LevelKind] = &[LevelKind::Barrels, LevelKind::Conveyors];
+    pub const ALL: &[LevelKind] = &[LevelKind::Barrels, LevelKind::Conveyors, LevelKind::Lifts];
 
     /// The name used after `type:` in a level file.
     pub fn as_str(self) -> &'static str {
         match self {
             LevelKind::Barrels => "barrels",
             LevelKind::Conveyors => "conveyors",
+            LevelKind::Lifts => "lifts",
         }
     }
 }
@@ -37,6 +41,19 @@ pub struct Belt {
     pub dir: i8,
     pub every: u32,
 }
+
+/// A lift: a platform `LIFT_WIDTH` wide centred on `x` that rides between the surface heights
+/// `top` and `bottom` (`top < bottom`), upwards when `dir` is -1, and reappears at the other end.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Lift {
+    pub x: f32,
+    pub top: f32,
+    pub bottom: f32,
+    pub dir: i8,
+}
+
+/// Width of a lift platform.
+pub const LIFT_WIDTH: f32 = 16.0;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Level {
@@ -60,6 +77,8 @@ pub struct Level {
     pub bonus_hammers: Vec<(f32, f32)>,
     /// Conveyor belts (the `conveyors` type).
     pub belts: Vec<Belt>,
+    /// Lifts (the `lifts` type).
+    pub lifts: Vec<Lift>,
 }
 
 /// A problem in a level file; `line` is 1-based, 0 means the file as a whole.
@@ -163,6 +182,7 @@ impl Level {
         let mut hammers = Vec::new();
         let mut bonus_hammers = Vec::new();
         let mut belts = Vec::new();
+        let mut lifts = Vec::new();
 
         for (i, raw) in text.lines().enumerate() {
             let line = i + 1;
@@ -251,6 +271,25 @@ impl Level {
                     };
                     belts.push(Belt { girder, dir, every });
                 }
+                "lift" => {
+                    let (nums, dir) = match (value.strip_suffix("up"), value.strip_suffix("down")) {
+                        (Some(rest), _) => (rest, -1),
+                        (_, Some(rest)) => (rest, 1),
+                        _ => return err(line, "'lift' needs x top bottom up|down"),
+                    };
+                    let v = numbers(line, key, nums, 3)?;
+                    in_field(line, v[0], v[1])?;
+                    in_field(line, v[0], v[2])?;
+                    if v[1] >= v[2] {
+                        return err(line, "a lift needs top < bottom");
+                    }
+                    lifts.push(Lift {
+                        x: v[0],
+                        top: v[1],
+                        bottom: v[2],
+                        dir,
+                    });
+                }
                 "girder" => {
                     let v = numbers(line, key, value, 4)?;
                     in_field(line, v[0], v[1])?;
@@ -297,6 +336,7 @@ impl Level {
             hammers,
             bonus_hammers,
             belts,
+            lifts,
         };
         if let Some(b) = level
             .belts
@@ -320,64 +360,43 @@ impl Level {
     #[allow(dead_code)] // the editor (#25) exports with it
     pub fn to_text(&self) -> String {
         let secs = |steps: u32| steps as f32 / STEP_HZ as f32;
-        let mut t = format!(
-            "name: {}
-type: {}
-bonus: {}
-bonus_drop: {}
-bonus_every: {}
-             barrel_every: {}
-extra_life: {}
-",
-            self.name,
-            self.kind.as_str(),
-            self.bonus,
-            self.bonus_drop,
-            secs(self.bonus_every),
-            secs(self.barrel_every),
-            self.extra_life
-        );
-        let pt = |key: &str, p: (f32, f32)| {
-            format!(
-                "{key}: {} {}
-",
-                p.0, p.1
-            )
-        };
-        t += &pt("start", self.start);
-        t += &pt("ape", self.ape);
-        t += &pt("goal", self.goal);
+        let mut lines = vec![
+            format!("name: {}", self.name),
+            format!("type: {}", self.kind.as_str()),
+            format!("bonus: {}", self.bonus),
+            format!("bonus_drop: {}", self.bonus_drop),
+            format!("bonus_every: {}", secs(self.bonus_every)),
+            format!("barrel_every: {}", secs(self.barrel_every)),
+            format!("extra_life: {}", self.extra_life),
+            format!("start: {} {}", self.start.0, self.start.1),
+            format!("ape: {} {}", self.ape.0, self.ape.1),
+            format!("goal: {} {}", self.goal.0, self.goal.1),
+        ];
         for g in &self.geometry.girders {
-            t += &format!(
-                "girder: {} {} {} {}
-",
-                g.x0, g.y0, g.x1, g.y1
-            );
+            lines.push(format!("girder: {} {} {} {}", g.x0, g.y0, g.x1, g.y1));
         }
         for l in &self.geometry.ladders {
             let broken = if l.broken { " broken" } else { "" };
-            t += &format!(
-                "ladder: {} {} {}{broken}
-",
-                l.x, l.top, l.bottom
-            );
+            lines.push(format!("ladder: {} {} {}{broken}", l.x, l.top, l.bottom));
         }
-        for h in &self.hammers {
-            t += &pt("hammer", *h);
-        }
-        for h in &self.bonus_hammers {
-            t += &pt("bonus_hammer", *h);
+        for (key, list) in [
+            ("hammer", &self.hammers),
+            ("bonus_hammer", &self.bonus_hammers),
+        ] {
+            for h in list {
+                lines.push(format!("{key}: {} {}", h.0, h.1));
+            }
         }
         for b in &self.belts {
             let dir = if b.dir < 0 { "left" } else { "right" };
-            t += &format!(
-                "conveyor: {} {dir} {}
-",
-                b.girder,
-                secs(b.every)
-            );
+            lines.push(format!("conveyor: {} {dir} {}", b.girder, secs(b.every)));
         }
-        t
+        for l in &self.lifts {
+            let dir = if l.dir < 0 { "up" } else { "down" };
+            lines.push(format!("lift: {} {} {} {dir}", l.x, l.top, l.bottom));
+        }
+        lines.push(String::new());
+        lines.join("\n")
     }
 }
 
@@ -457,6 +476,7 @@ mod tests {
         for text in [
             include_str!("../../levels/01-barrels.txt"),
             include_str!("../../levels/02-conveyors.txt"),
+            include_str!("../../levels/03-lifts.txt"),
         ] {
             let l = Level::parse(text).unwrap();
             assert_eq!(Level::parse(&l.to_text()).unwrap(), l);
@@ -466,9 +486,7 @@ mod tests {
     #[test]
     fn conveyor_lines_are_parsed_and_checked() {
         let l = Level::parse(&format!(
-            "{MINI}conveyor: 0 left 4.5
-conveyor: 0 right 0
-"
+            "{MINI}conveyor: 0 left 4.5\nconveyor: 0 right 0\n"
         ))
         .unwrap();
         assert_eq!(l.belts[0].dir, -1);
@@ -480,6 +498,14 @@ conveyor: 0 right 0
 "
             )),
             "conveyor: there is no girder number 3"
+        );
+        assert_eq!(
+            error_of("lift: 50 10 90\n"),
+            "line 1: 'lift' needs x top bottom up|down"
+        );
+        assert_eq!(
+            error_of("lift: 50 90 10 up\n"),
+            "line 1: a lift needs top < bottom"
         );
         assert_eq!(
             error_of(

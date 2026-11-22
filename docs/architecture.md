@@ -78,10 +78,10 @@ browser and is unit-tested.
 
 ### Level format (`level.rs`, `levels.rs`, `levels/*.txt`, #6)
 
-One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels`, `conveyors`), `bonus` /
+One `key: values` per line, `#` starts a comment. Keys: `name`, `type` (`barrels`, `conveyors`, `lifts`), `bonus` /
 `bonus_drop` / `bonus_every` (seconds), `barrel_every` (seconds), `extra_life` (score),
 `start x y`, `ape x y`, `goal x y`, `girder x0 y0 x1 y1`, `ladder x top bottom [broken]`,
-`conveyor girder left|right seconds` (belt on the girder with that 0-based number, reverses every
+`lift x top bottom up|down`, `conveyor girder left|right seconds` (belt on the girder with that 0-based number, reverses every
 `seconds`, 0 = never), `hammer x y`, `bonus_hammer x y` (extra hammers of the easier difficulties; all in playfield pixels; ladder ends are girder surface heights). `Level::parse`
 reports syntax / range errors as `line N: message` (`ParseError`, line 0 = whole file, e.g. a
 missing key). `Level::validate` (rules in `validate.rs`) checks that start, goal, ape, hammers and ladder ends
@@ -110,6 +110,23 @@ Climbing and airborne players are not carried. The view draws arrows that move w
 The validator ignores belts: the belt is slower than the walk, so every route stays possible.
 Level 2 (`levels/02-conveyors.txt`) is five flat belts under the ape; the generator makes the same
 structure from a seed (`LevelKind::Conveyors`).
+
+### Lifts and springs (`Level::lifts`, `GameState::lifts`, `barrel.rs`, #14)
+
+`Lift { x, top, bottom, dir }` is a `LIFT_WIDTH` (16 px) platform that rides between the surface
+heights `top` and `bottom` (`dir` -1 = up) at `LIFT_SPEED` (0.4 px/step, times the difficulty's
+obstacle speed) and starts again at the other end. In `GameState::start` every lift becomes a short
+girder appended to `level.geometry.girders`; `step` moves them *before* the player, so the
+existing walking / landing / barrel code treats a lift as ground and a player standing on one
+rides with it (a lift that wraps takes its ground away: the hero falls). `GameState::scenery()` is
+the geometry without the lifts (the static background texture); the view draws `Id::Lift` at
+`GameState::lifts`. The validator joins every girder whose end lies next to a lift's ride (within
+a jump) with all the others near it, both ways. On the `lifts` type the ape drops **springs**
+instead of barrels: `Barrel::spring` / `BarrelMode::Bouncing` flies right at `SPRING_VX` and
+bounces up with `SPRING_BOUNCE_VY` on every landing; springs use the barrel code for hits, hammer
+smashes and jump-over points. Level 3 (`levels/03-lifts.txt`): start platform, rising lift, upper
+floor with a ladder to the ape, falling lift to the right-hand floor. The generator makes the same
+layout with jitter (`levelgen::lifts`).
 
 ### Level generator (`levelgen.rs`, #22)
 

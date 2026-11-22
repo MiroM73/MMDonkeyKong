@@ -3,7 +3,7 @@
 //! sub-seed. Only `+ - * /` and the seeded `Rng` are used, so a seed gives the same level on every
 //! platform. Print a level as a file with the ignored test `print_generated_level` (see below).
 
-use super::level::{Belt, Level, LevelKind};
+use super::level::{Belt, Level, LevelKind, Lift};
 use super::{Geometry, Girder, Ladder, Rng, STEP_HZ, builtin_level};
 
 /// How many sub-seeds are tried before the generator gives up and returns the shipped level.
@@ -38,6 +38,7 @@ pub fn generate(kind: LevelKind, seed: u64, size_hint: u32) -> Level {
 /// One candidate (not validated yet).
 fn build(kind: LevelKind, sub_seed: u64, size_hint: u32, name_seed: u64) -> Level {
     match kind {
+        LevelKind::Lifts => lifts(sub_seed, name_seed),
         LevelKind::Barrels | LevelKind::Conveyors => stacked(kind, sub_seed, size_hint, name_seed),
     }
 }
@@ -171,6 +172,71 @@ fn stacked(kind: LevelKind, seed: u64, size_hint: u32, name_seed: u64) -> Level 
         hammers,
         bonus_hammers,
         belts,
+        lifts: Vec::new(),
+    }
+}
+
+/// A start platform, a lift that rises to an upper floor, a ladder up to the ape's floor and a
+/// second lift that comes down. The ape drops springs.
+fn lifts(seed: u64, name_seed: u64) -> Level {
+    let mut rng = Rng::new(seed);
+    let half = super::LIFT_WIDTH / 2.0;
+    let start_end = (40 + 8 * rng.range(0, 2)) as f32;
+    let lift_x = start_end + half + rng.range(6, 14) as f32;
+    let upper_y = r1((92 + rng.range(0, 16)) as f32);
+    let upper_x = lift_x + half + rng.range(6, 14) as f32;
+    let top_end = (130 + 10 * rng.range(0, 4)) as f32;
+    let girders = vec![
+        Girder::new(0.0, 248.0, start_end, 248.0),
+        Girder::new(upper_x, upper_y, 140.0, upper_y),
+        Girder::new(0.0, TOP_Y, top_end, TOP_Y),
+        Girder::new(164.0, 248.0, 224.0, 248.0),
+    ];
+    let ladder_x = (upper_x
+        + 12.0
+        + rng.range(
+            0,
+            ((top_end.min(140.0) - 12.0 - upper_x - 12.0) / 2.0) as i32,
+        ) as f32
+            * 2.0)
+        .round();
+    let ladders = vec![Ladder {
+        x: ladder_x,
+        top: TOP_Y,
+        bottom: upper_y,
+        broken: false,
+    }];
+    let hammers = vec![(128.0, upper_y), (190.0, 248.0)];
+    let lifts = vec![
+        Lift {
+            x: lift_x,
+            top: upper_y,
+            bottom: 248.0,
+            dir: -1,
+        },
+        Lift {
+            x: 156.0,
+            top: upper_y,
+            bottom: 248.0,
+            dir: 1,
+        },
+    ];
+    Level {
+        name: format!("Lifts {name_seed}"),
+        kind: LevelKind::Lifts,
+        bonus: 7000,
+        bonus_drop: 100,
+        bonus_every: 2 * STEP_HZ,
+        barrel_every: (STEP_HZ / 2) * rng.range(4, 8) as u32,
+        extra_life: 12000,
+        start: (20.0, 248.0),
+        ape: (20.0, TOP_Y),
+        goal: (70.0, TOP_Y),
+        geometry: Geometry { girders, ladders },
+        hammers,
+        bonus_hammers: vec![(30.0, 248.0), (190.0, 248.0)],
+        belts: Vec::new(),
+        lifts,
     }
 }
 

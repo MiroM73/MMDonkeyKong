@@ -161,6 +161,9 @@ pub(in crate::app) fn barrel_sprite(mode: BarrelMode, x: f32, tick: u64) -> Id {
         BarrelMode::Rolling { .. } => ROLL[((x / 3.0).floor() as i64).rem_euclid(4) as usize],
         BarrelMode::Falling { .. } => ROLL[((tick / 4) % 4) as usize],
         BarrelMode::Descending { .. } => Id::BarrelFront,
+        // Stretched while it rises, squashed while it falls.
+        BarrelMode::Bouncing { vy, .. } if vy < 0.0 => Id::Spring0,
+        BarrelMode::Bouncing { .. } => Id::Spring1,
     }
 }
 
@@ -211,6 +214,15 @@ pub(in crate::app) fn draw_scene(view: &View, st: &GameState, look: &Look) {
 
     view.blit(look.background, 0, 0, false);
     draw_belts(view, st);
+    for g in st
+        .level
+        .geometry
+        .girders
+        .iter()
+        .skip(st.level.geometry.girders.len() - st.lifts.len())
+    {
+        blit(Id::Lift, g.x0, g.y0, false);
+    }
 
     // The friend at the goal and the hammer items.
     let (gx, gy) = st.level.goal;

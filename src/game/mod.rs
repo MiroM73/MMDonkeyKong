@@ -17,10 +17,10 @@ mod rng;
 mod timestep;
 mod validate;
 
-pub use barrel::{Barrel, BarrelMode};
+pub use barrel::{Barrel, BarrelMode, SPRING_VX};
 pub use difficulty::{Difficulty, Params};
 pub use input::Input;
-pub use level::Level;
+pub use level::{LIFT_WIDTH, Level, LevelKind};
 pub use levels::{builtin as builtin_level, count as level_count};
 pub use player::{Geometry, Girder, Ladder, Mode, Player, PlayerEvent};
 pub use rng::Rng;
@@ -93,6 +93,8 @@ const GOAL_HALF_W: f32 = 8.0;
 const GOAL_HEIGHT: f32 = 16.0;
 /// Pixels per step a conveyor belt carries what stands on it (at obstacle speed 1.0).
 pub const BELT_SPEED: f32 = 0.5;
+/// Pixels per step a lift moves (at obstacle speed 1.0).
+pub const LIFT_SPEED: f32 = 0.4;
 
 /// The running state of one `Belt` of the level (same index).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -115,6 +117,10 @@ pub struct GameState {
     pub hammer_left: u32,
     /// The conveyor belts: the direction each runs now and the steps until it reverses.
     pub belts: Vec<BeltState>,
+    /// Current surface height of every lift of the level (same index). Each lift is also a short
+    /// girder at the end of `level.geometry.girders`, so the player and the barrels treat it
+    /// as ground; `scenery()` is the geometry without them.
+    pub lifts: Vec<f32>,
     pub score: u32,
     pub lives: u32,
     pub bonus: u32,
@@ -162,6 +168,19 @@ impl GameState {
                 .max(1.min(level.hammers.len()));
             level.hammers.truncate(keep);
         }
+        // The lifts become girders at the end of the list (moved every step).
+        let lifts: Vec<f32> = level
+            .lifts
+            .iter()
+            .map(|l| if l.dir < 0 { l.bottom } else { l.top })
+            .collect();
+        for (l, &y) in level.lifts.iter().zip(&lifts) {
+            let half = LIFT_WIDTH / 2.0;
+            level
+                .geometry
+                .girders
+                .push(Girder::new(l.x - half, y, l.x + half, y));
+        }
         let every = level.extra_life;
         Self {
             tick: 0,
@@ -169,6 +188,7 @@ impl GameState {
             barrels: Vec::new(),
             hammers: level.hammers.clone(),
             hammer_left: 0,
+            lifts,
             belts: level
                 .belts
                 .iter()
@@ -190,6 +210,13 @@ impl GameState {
             rng: Rng::new(seed),
             level,
         }
+    }
+
+    /// The geometry that never moves (without the lift platforms): what the background shows.
+    pub fn scenery(&self) -> Geometry {
+        let mut g = self.level.geometry.clone();
+        g.girders.truncate(g.girders.len() - self.lifts.len());
+        g
     }
 
     /// The direction of the belt under (`x`, `y`), `None` when the ground there is no belt.
@@ -254,6 +281,22 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
     }
     state.tick += 1;
 
+    // The lifts ride and start again at the other end.
+    let speed = LIFT_SPEED * state.params.obstacle_speed;
+    let fixed = state.level.geometry.girders.len() - state.lifts.len();
+    for (i, spec) in state.level.lifts.iter().enumerate() {
+        let mut y = state.lifts[i] + f32::from(spec.dir) * speed;
+        if y < spec.top {
+            y = spec.bottom;
+        } else if y > spec.bottom {
+            y = spec.top;
+        }
+        state.lifts[i] = y;
+        let g = &mut state.level.geometry.girders[fixed + i];
+        g.y0 = y;
+        g.y1 = y;
+    }
+
     // With the hammer in the hand the player can neither climb nor jump (as in the original).
     let mut input = *input;
     if state.hammer_left > 0 {
@@ -299,7 +342,11 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
     state.barrel_in = state.barrel_in.saturating_sub(1);
     if state.barrel_in == 0 {
         let (ax, ay) = state.level.ape;
-        state.barrels.push(Barrel::thrown(ax + 16.0, ay - 8.0, 1));
+        state.barrels.push(if state.level.kind == LevelKind::Lifts {
+            Barrel::spring(ax + 16.0, ay - 8.0, SPRING_VX * state.params.obstacle_speed)
+        } else {
+            Barrel::thrown(ax + 16.0, ay - 8.0, 1)
+        });
         state.barrel_in = state.level.barrel_every;
     }
     for i in 0..state.barrels.len() {
@@ -781,5 +828,66 @@ mod tests {
         let b = &s.barrels[0];
         assert!(b.x > 100.0, "{}", b.x);
         assert!(matches!(b.mode, BarrelMode::Rolling { dir: 1 }));
+    }
+
+    fn lifts() -> GameState {
+        let mut s = GameState::new(builtin_level(2), 1);
+        s.barrel_in = u32::MAX;
+        s
+    }
+
+    #[test]
+    fn lifts_are_ground_at_the_end_of_the_girder_list_but_not_scenery() {
+        let s = lifts();
+        assert_eq!(s.lifts.len(), 2);
+        assert_eq!(s.level.geometry.girders.len(), 4 + 2);
+        assert_eq!(s.scenery().girders.len(), 4);
+        // The rising lift starts at the bottom, the falling one at the top.
+        assert_eq!(s.lifts, vec![248.0, 100.0]);
+    }
+
+    #[test]
+    fn lifts_ride_and_start_again_at_the_other_end() {
+        let mut s = lifts();
+        s.player.mode = Mode::Dead { left: u32::MAX };
+        idle(&mut s, 100);
+        assert!((s.lifts[0] - (248.0 - 100.0 * LIFT_SPEED)).abs() < 1e-3);
+        assert!((s.lifts[1] - (100.0 + 100.0 * LIFT_SPEED)).abs() < 1e-3);
+        idle(&mut s, 300); // 148 px at 0.4 px per step = 370 steps: the rising lift wrapped
+        assert!(s.lifts[0] > 200.0, "{}", s.lifts[0]);
+        let fixed = s.level.geometry.girders.len() - 2;
+        assert_eq!(s.level.geometry.girders[fixed].y0, s.lifts[0]);
+    }
+
+    #[test]
+    fn the_hero_rides_a_lift_up() {
+        let mut s = lifts();
+        s.player.x = 76.0;
+        s.player.y = 248.0;
+        idle(&mut s, 120);
+        assert!(s.player.is_walking());
+        assert!((s.player.y - s.lifts[0]).abs() < 1e-3);
+        assert!(s.player.y < 248.0 - 40.0, "{}", s.player.y);
+    }
+
+    #[test]
+    fn the_ape_drops_springs_on_the_lifts_level() {
+        let mut s = GameState::new(builtin_level(2), 1);
+        s.player.mode = Mode::Dead { left: u32::MAX };
+        idle(&mut s, FIRST_BARREL_STEPS as usize);
+        assert!(matches!(s.barrels[0].mode, BarrelMode::Bouncing { .. }));
+        idle(&mut s, 200);
+        // It has bounced to the right along the ape's floor.
+        assert!(s.barrels[0].x > 36.0);
+    }
+
+    #[test]
+    fn a_hero_standing_on_nothing_next_to_the_lift_falls() {
+        // Left of the start platform's end, between the platform and the lift.
+        let mut s = lifts();
+        s.player.x = 60.0;
+        s.player.y = 248.0;
+        let events = idle(&mut s, 200);
+        assert!(events.contains(&Event::Died));
     }
 }

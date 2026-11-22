@@ -305,7 +305,7 @@ impl App {
         let background = self.game.background.get_or_insert_with(|| {
             let image = egui::ColorImage::new(
                 [FIELD_W as usize, FIELD_H as usize],
-                scene::render_background(&st.level.geometry),
+                scene::render_background(&st.scenery()),
             );
             ctx.load_texture("background", image, egui::TextureOptions::NEAREST)
         });

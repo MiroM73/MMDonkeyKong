@@ -54,7 +54,8 @@ fn check_pair(a: &Girder, b: &Girder) -> Result<(), String> {
 
 /// Moves between girders the player can make: climbing intact ladders (both ways), walking off an
 /// end onto a girder not far below, and jumping over a gap. `from -> to` pairs.
-fn moves(g: &Geometry, ladder_edges: &[(usize, usize)]) -> Vec<(usize, usize)> {
+fn moves(level: &Level, ladder_edges: &[(usize, usize)]) -> Vec<(usize, usize)> {
+    let g = &level.geometry;
     let mut edges = Vec::new();
     for &(a, b) in ladder_edges {
         edges.push((a, b));
@@ -93,6 +94,29 @@ fn moves(g: &Geometry, ladder_edges: &[(usize, usize)]) -> Vec<(usize, usize)> {
                     }
                 } else if gap <= JUMP_REACH && (-JUMP_RISE..=JUMP_DROP).contains(&dy) {
                     edges.push((i, j));
+                }
+            }
+        }
+    }
+    // A lift joins every girder whose end is next to its ride (a jump away at most).
+    for lift in &level.lifts {
+        let half = super::LIFT_WIDTH / 2.0;
+        let near: Vec<usize> = g
+            .girders
+            .iter()
+            .enumerate()
+            .filter(|(_, gi)| {
+                [(gi.x0, gi.y0), (gi.x1, gi.y1)].iter().any(|&(x, y)| {
+                    let gap = ((lift.x - half) - x).max(x - (lift.x + half)).max(0.0);
+                    gap <= JUMP_REACH && y >= lift.top - SNAP && y <= lift.bottom + SNAP
+                })
+            })
+            .map(|(i, _)| i)
+            .collect();
+        for &a in &near {
+            for &b in &near {
+                if a != b {
+                    edges.push((a, b));
                 }
             }
         }
@@ -165,7 +189,7 @@ pub fn validate(level: &Level) -> Result<(), String> {
         }
     }
 
-    let edges = moves(g, &ladder_edges);
+    let edges = moves(level, &ladder_edges);
     let mut seen = vec![false; g.girders.len()];
     let mut todo = vec![start];
     seen[start] = true;

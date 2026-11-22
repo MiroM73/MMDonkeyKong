@@ -12,6 +12,9 @@ pub const ROLL_SPEED: f32 = 0.8;
 pub const DROP_VX: f32 = 0.5;
 const GRAVITY: f32 = 0.15;
 const MAX_FALL_SPEED: f32 = 5.0;
+/// Upwards speed of a spring after a landing, and its horizontal speed (at obstacle speed 1.0).
+pub const SPRING_BOUNCE_VY: f32 = -2.2;
+pub const SPRING_VX: f32 = 0.7;
 /// Barrel size: a square of `2 * RADIUS`, `x` / `y` are the middle of the bottom edge.
 pub const RADIUS: f32 = 4.0;
 
@@ -23,6 +26,8 @@ pub enum BarrelMode {
     Descending { ladder: usize },
     /// Falling; `vx` is horizontal drift, `dir` the roll direction if the girder below is flat.
     Falling { vx: f32, vy: f32, dir: i8 },
+    /// A spring: flies on with `vx`, bounces back up with `SPRING_BOUNCE_VY` on every landing.
+    Bouncing { vx: f32, vy: f32 },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -45,6 +50,16 @@ impl Barrel {
                 vy: 0.0,
                 dir,
             },
+            jumped: false,
+        }
+    }
+
+    /// A spring dropped at (`x`, `y`) that bounces to the right.
+    pub fn spring(x: f32, y: f32, vx: f32) -> Self {
+        Self {
+            x,
+            y,
+            mode: BarrelMode::Bouncing { vx, vy: 0.0 },
             jumped: false,
         }
     }
@@ -93,6 +108,29 @@ impl Barrel {
                                 dir: 1,
                             }
                         }
+                    }
+                }
+            }
+            BarrelMode::Bouncing { vx, vy } => {
+                let vy = (vy + GRAVITY).min(MAX_FALL_SPEED);
+                let (new_x, new_y) = (self.x + vx, self.y + vy);
+                let hit = if vy > 0.0 {
+                    geo.landing(new_x, self.y, new_y)
+                } else {
+                    None
+                };
+                self.x = new_x;
+                match hit {
+                    Some(s) => {
+                        self.y = s;
+                        self.mode = BarrelMode::Bouncing {
+                            vx,
+                            vy: SPRING_BOUNCE_VY,
+                        };
+                    }
+                    None => {
+                        self.y = new_y;
+                        self.mode = BarrelMode::Bouncing { vx, vy };
                     }
                 }
             }
@@ -177,6 +215,30 @@ mod tests {
             ],
             ladders: vec![],
         }
+    }
+
+    #[test]
+    fn a_spring_bounces_along_and_leaves_the_field() {
+        let geo = slope_right();
+        let mut b = Barrel::spring(10.0, 60.0, 0.7);
+        let mut rng = Rng::new(1);
+        let mut landings = 0;
+        let mut last_vy = 0.0;
+        for _ in 0..200 {
+            b.step(&geo, &mut rng, &Difficulty::Normal.params());
+            if let BarrelMode::Bouncing { vy, .. } = b.mode {
+                if vy == SPRING_BOUNCE_VY && last_vy != SPRING_BOUNCE_VY {
+                    landings += 1;
+                }
+                last_vy = vy;
+            }
+        }
+        assert!(landings >= 3, "{landings}");
+        assert!(b.x > 100.0);
+        for _ in 0..600 {
+            b.step(&geo, &mut rng, &Difficulty::Normal.params());
+        }
+        assert!(b.is_gone());
     }
 
     #[test]
