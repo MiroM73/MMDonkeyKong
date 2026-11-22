@@ -204,10 +204,80 @@ fn stacked(kind: LevelKind, seed: u64, size_hint: u32, name_seed: u64) -> Level 
     }
 }
 
-/// A start platform, a lift that rises to an upper floor, a ladder up to the ape's floor and a
-/// second lift that comes down. The ape drops springs.
+/// A lifts level in one of two layouts, chosen by the seed: one lift to an upper floor, or a
+/// two-stage climb over a middle floor.
 fn lifts(seed: u64, name_seed: u64) -> Level {
     let mut rng = Rng::new(seed);
+    if rng.below(2) == 0 {
+        lifts_one_stage(&mut rng, name_seed)
+    } else {
+        lifts_two_stages(&mut rng, name_seed)
+    }
+}
+
+/// A start platform, two rising lifts with a middle floor between them, a ledge on the right and a
+/// ladder up to the ape's floor. The ape drops springs.
+fn lifts_two_stages(rng: &mut Rng, name_seed: u64) -> Level {
+    let half = super::LIFT_WIDTH / 2.0;
+    let start_end = (40 + 8 * rng.range(0, 2)) as f32;
+    let lift_a = start_end + half + rng.range(6, 14) as f32;
+    let mid_y = r1((168 + rng.range(0, 16)) as f32);
+    let mid_x0 = lift_a + half + rng.range(6, 14) as f32;
+    let mid_x1 = mid_x0 + (40 + 8 * rng.range(0, 3)) as f32;
+    let lift_b = mid_x1 + half + rng.range(6, 14) as f32;
+    let ledge_y = r1((100 + rng.range(0, 12)) as f32);
+    let ledge_x = lift_b + half + rng.range(6, 14) as f32;
+    let ladder_x = (ledge_x + 12.0 + 2.0 * rng.range(0, 4) as f32).round();
+    let girders = vec![
+        Girder::new(0.0, 248.0, start_end, 248.0),
+        Girder::new(mid_x0, mid_y, mid_x1, mid_y),
+        Girder::new(ledge_x, ledge_y, 224.0, ledge_y),
+        Girder::new(0.0, TOP_Y, ladder_x + 10.0, TOP_Y),
+        Girder::new(164.0, 248.0, 224.0, 248.0),
+    ];
+    let ladders = vec![Ladder {
+        x: ladder_x,
+        top: TOP_Y,
+        bottom: ledge_y,
+        broken: false,
+    }];
+    let lifts = vec![
+        Lift {
+            x: lift_a,
+            top: mid_y,
+            bottom: 248.0,
+            dir: -1,
+        },
+        Lift {
+            x: lift_b,
+            top: ledge_y,
+            bottom: mid_y,
+            dir: -1,
+        },
+    ];
+    Level {
+        name: format!("Lifts {name_seed}"),
+        kind: LevelKind::Lifts,
+        bonus: 9000,
+        bonus_drop: 100,
+        bonus_every: 2 * STEP_HZ,
+        barrel_every: (STEP_HZ / 2) * rng.range(3, 7) as u32,
+        extra_life: 16000,
+        start: (20.0, 248.0),
+        ape: (20.0, TOP_Y),
+        goal: (70.0, TOP_Y),
+        geometry: Geometry { girders, ladders },
+        hammers: vec![((mid_x0 + mid_x1) / 2.0, mid_y), (ledge_x + 14.0, ledge_y)],
+        bonus_hammers: vec![(30.0, 248.0), (mid_x0 + 8.0, mid_y)],
+        belts: Vec::new(),
+        lifts,
+        rivets: Vec::new(),
+    }
+}
+
+/// A start platform, a lift that rises to an upper floor, a ladder up to the ape's floor and a
+/// second lift that comes down. The ape drops springs.
+fn lifts_one_stage(rng: &mut Rng, name_seed: u64) -> Level {
     let half = super::LIFT_WIDTH / 2.0;
     let start_end = (40 + 8 * rng.range(0, 2)) as f32;
     let lift_x = start_end + half + rng.range(6, 14) as f32;

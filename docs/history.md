@@ -114,6 +114,19 @@ What was done when (one line per issue / release) and the open ideas of the owne
   browser) into every game's seed, so the first game differs on every launch.
 - **#30 Belt arrows** – `BeltState::phase` accumulates the real belt travel; arrows follow the difficulty speed
   and do not jump on reversal.
+- **#37 Insane vs. the bonus time** – `balance_difficulty_steps` now records the longest winning life of the strong
+  bot on Insane (`Outcome::life_steps`, steps since the last death) and asserts it stays under 60 % of the level's
+  bonus time (`bonus_steps`); it prints the share per level. Measured (8 seeds): 1–13 % (Rivets II 32.5 s of 240 s
+  is the longest), so no `bonus` had to change. `balance_explore` (`BALANCE_LEVELS=2,4 cargo test --release
+  balance_explore -- --ignored --nocapture`) runs chosen levels only.
+- **#36 Balance findings (partly)** – fireballs scale with the difficulty (`Params::max_fireballs`,
+  `fire_turn_every`); Conveyors / Conveyors II drop a load every 2.2 s / 1.5 s (was 3.5 / 2.5); Rivets / Rivets II
+  a fireball every 7 s / 4.5 s (was 6 / 4). Table after the change (weak bot, 8 runs, won runs): Conveyors Normal 7/8
+  with 0.4 deaths (was 0.1), Rivets Easy 8/8, Hard 2/8, Insane 0/8; the strong bot still wins every level on Insane
+  (Rivets 5/8). Rivets remains the hardest level for the weak bot – its deaths come from the long route and the
+  hunting, not from the number of fireballs – and Hard differs from Normal only a little more (→ final pass #15).
+- **#29 Lifts II** – level 7 is a hand-written two-stage climb (two rising lifts, a middle floor, a ledge, a
+  ladder); the generator got the same layout as a second `lifts` variant chosen by the seed.
 
 ## Open ideas
 

@@ -1,23 +1,38 @@
-# Level 7 - Lifts II. Generated with `GEN_TYPE=lifts GEN_SEED=5 GEN_SIZE=6 cargo test print_generated_level -- --ignored --nocapture`
-# (docs/architecture.md -> Level generator), then tuned by hand: A higher upper floor and a spring every 1.5 s.
+# Level 7 - Lifts II. Same format as level 1 (see docs/architecture.md -> Level format).
+# Written by hand: a two-stage climb. The first lift rises to a middle floor, the second one
+# carries the hero on to an upper ledge, a ladder leads to the friend. The ape drops a spring
+# every 2 s, and they bounce down over all three floors.
 name: Lifts II
 type: lifts
+
 bonus: 11000
 bonus_drop: 100
 bonus_every: 2
-barrel_every: 1.5
+barrel_every: 2
 extra_life: 20000
+
 start: 20 248
 ape: 20 60
 goal: 70 60
-girder: 0 248 56 248
-girder: 92 93 140 93
-girder: 0 60 160 60
+
+# girder: x0 y0 x1 y1   (x0 < x1)
+girder: 0 248 48 248
+girder: 88 176 140 176
+girder: 176 108 224 108
+girder: 0 60 214 60
 girder: 164 248 224 248
-ladder: 110 60 93
-hammer: 128 93
-hammer: 190 248
+
+# lift: x top bottom up|down   (a 16 px wide platform centred on x; surface heights)
+lift: 68 176 248 up
+lift: 158 108 176 up
+
+# ladder: x top bottom [broken]
+ladder: 204 60 108
+
+# hammer: x y
+hammer: 120 176
+hammer: 200 108
+
+# bonus_hammer: x y   (extra hammers, only on the easier difficulties; Relaxed +2, Easy +1)
 bonus_hammer: 30 248
-bonus_hammer: 190 248
-lift: 76 93 248 up
-lift: 156 93 248 down
+bonus_hammer: 100 176

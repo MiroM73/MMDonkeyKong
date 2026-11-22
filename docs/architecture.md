@@ -127,8 +127,10 @@ a jump) with all the others near it, both ways. On the `lifts` type the ape drop
 instead of barrels: `Barrel::spring` / `BarrelMode::Bouncing` flies right at `SPRING_VX` and
 bounces up with `SPRING_BOUNCE_VY` on every landing; springs use the barrel code for hits, hammer
 smashes and jump-over points. Level 3 (`levels/03-lifts.txt`): start platform, rising lift, upper
-floor with a ladder to the ape, falling lift to the right-hand floor. The generator makes the same
-layout with jitter (`levelgen::lifts`).
+floor with a ladder to the ape, falling lift to the right-hand floor. Level 7 (`levels/07-lifts-2.txt`,
+written by hand, #29) is a two-stage climb: a lift to a middle floor, a second lift to a ledge on the
+right, a ladder to the ape's floor. `levelgen::lifts` picks one of the two layouts by the seed
+(`lifts_one_stage` = level 3 with jitter, `lifts_two_stages` = level 7 with jitter).
 
 ### Rivets and fireballs (`fireball.rs`, `Level::rivets`, `GameState::rivets`, #14)
 
@@ -136,9 +138,9 @@ On the `rivets` type the level is won by removing every rivet (`rivet: x y` on a
 *walking* hero within 4 px of one pulls it out (`Event::Rivet`, 100 points); the last one adds the
 time bonus and completes the level; the goal point is only the friend's place (`step` ignores it
 for this type). The validator wants at least one rivet and every rivet reachable. The ape sends
-**fireballs** instead of barrels every `barrel_every` (at most four alive). `Fireball` walks a
-girder at 0.45 px/step (times the difficulty's obstacle speed), turns at the ends, every 45 steps
-turns towards the player with probability 2/3, and takes an intact ladder it passes (50 %) when
+**fireballs** instead of barrels every `barrel_every` (at most `Params::max_fireballs` alive). `Fireball` walks a
+girder at 0.45 px/step (times the difficulty's obstacle speed), turns at the ends, every
+`Params::fire_turn_every` steps (45 on Normal) turns towards the player with probability 2/3, and takes an intact ladder it passes (50 %) when
 that leads towards the player's floor (`target.1` more than 8 px above / below). A touch kills the
 hero, the hammer burns it (`Event::Smash`, 500 points); fireballs are cleared on respawn. The view
 draws the rivets as dots and the fireballs with the two `Fire` frames. Level 4
@@ -163,7 +165,9 @@ print_generated_level -- --ignored --nocapture` (the crate is a binary, so there
 in `Difficulty::params()`: `lives`, `obstacle_speed` (multiplies the barrel speed), `spawn_interval_pct`
 (percent of the level's `barrel_every`), `ladder_chance` (`num` in `den`, drawn as
 `rng.below(den) < num`, so Normal `1/3` consumes the `Rng` exactly as before), `hammer_delta`,
-`score_pct` and `bonus_timeout` (Insane only: when `step()` drops the bonus to 0 the player is killed,
+`score_pct`, `max_fireballs` / `fire_turn_every` (the rivets levels: how many fireballs the ape keeps
+alive and how often a walking one may turn towards the hero; Relaxed 2 / 90 steps, Easy 3 / 60,
+Normal 4 / 45, Hard 4 / 36, Insane 4 / 30, #36) and `bonus_timeout` (Insane only: when `step()` drops the bonus to 0 the player is killed,
 `Event::TimeUp` follows `Died`, the bonus is reset to the level's full value; `GameState::bonus_low()`
 makes the HUD blink). `GameState::start(level, seed, difficulty, lives, score)` applies them once, to its own
 copy of the level: `barrel_every`, `bonus`, `bonus_drop` and `extra_life` are scaled, hammers are

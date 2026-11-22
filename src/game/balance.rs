@@ -473,6 +473,9 @@ struct Outcome {
     completed: bool,
     deaths: u32,
     steps: u32,
+    /// The steps since the last death (or the start): the length of the life that won. The time
+    /// bonus starts again after a death, so this is the one to compare with it.
+    life_steps: u32,
 }
 
 /// One bot plays `level` on `difficulty` from the full lives until it wins, loses all lives or
@@ -531,8 +534,10 @@ fn play_state(s: GameState, skill: Skill, seed: u64) -> Outcome {
             let lives = game.s.lives;
             game.step(m, &nav);
             out.steps += 1;
+            out.life_steps += 1;
             if game.s.lives < lives {
                 out.deaths += 1;
+                out.life_steps = 0;
             }
             match game.s.status {
                 Status::Complete => {
@@ -551,8 +556,17 @@ fn play_state(s: GameState, skill: Skill, seed: u64) -> Outcome {
 
 /// Runs every level × difficulty × seed for `skill` on all cores; `[difficulty][level]`.
 fn run_all(skill: Skill, seeds: u64) -> Vec<Vec<Vec<Outcome>>> {
+    run_levels(skill, seeds, &(0..level_count()).collect::<Vec<_>>())
+}
+
+/// Like `run_all`, but only the given levels (0-based); the others stay empty.
+fn run_levels(skill: Skill, seeds: u64, levels: &[usize]) -> Vec<Vec<Vec<Outcome>>> {
     let jobs: Vec<(usize, usize, u64)> = (0..Difficulty::ALL.len())
-        .flat_map(|d| (0..level_count()).flat_map(move |l| (1..=seeds).map(move |s| (d, l, s))))
+        .flat_map(|d| {
+            levels
+                .iter()
+                .flat_map(move |&l| (1..=seeds).map(move |s| (d, l, s)))
+        })
         .collect();
     let threads = std::thread::available_parallelism().map_or(2, |n| n.get());
     let next = std::sync::atomic::AtomicUsize::new(0);
@@ -589,6 +603,10 @@ fn report(skill: Skill, r: &[Vec<Vec<Outcome>>]) {
     for (d, row) in r.iter().enumerate() {
         print!("{:<8}", format!("{:?}", Difficulty::ALL[d]));
         for runs in row {
+            if runs.is_empty() {
+                print!(" {:>11}", "-");
+                continue;
+            }
             let won = runs.iter().filter(|o| o.completed).count();
             let deaths: u32 = runs.iter().map(|o| o.deaths).sum();
             print!(
@@ -659,10 +677,103 @@ fn balance_difficulty_steps() {
     report(WEAK, &weak);
     let strong = run_all(STRONG, n);
     report(STRONG, &strong);
+    report_bonus_time(&strong);
     let weak_lost = lost_levels(&weak, Difficulty::Relaxed);
     let strong_lost = lost_levels(&strong, Difficulty::Insane);
     assert!(
         weak_lost.is_empty() && strong_lost.is_empty(),
         "weak bot never won on Relaxed: {weak_lost:?}; strong bot never won on Insane: {strong_lost:?}"
     );
+    let slow = too_slow_levels(&strong);
+    assert!(
+        slow.is_empty(),
+        "strong bot on Insane needs over {LIMIT_PCT} % of the bonus time: {slow:?}"
+    );
+}
+
+/// The steps the time bonus of `level` lasts: `bonus` / `bonus_drop` drops, one every `bonus_every`
+/// steps (the score multiplier scales both, so the difficulty does not change it).
+fn bonus_steps(level: usize) -> u32 {
+    let l = builtin_level(level);
+    l.bonus / l.bonus_drop.max(1) * l.bonus_every
+}
+
+/// Levels where a winning life of the strong bot on Insane needed more than `LIMIT_PCT` percent of
+/// the bonus time, as `(level name, longest life in steps, bonus steps)`.
+fn too_slow_levels(r: &[Vec<Vec<Outcome>>]) -> Vec<(String, u32, u32)> {
+    let d = Difficulty::ALL
+        .iter()
+        .position(|&x| x == Difficulty::Insane)
+        .unwrap();
+    r[d].iter()
+        .enumerate()
+        .filter_map(|(l, runs)| {
+            let longest = runs
+                .iter()
+                .filter(|o| o.completed)
+                .map(|o| o.life_steps)
+                .max()?;
+            let limit = bonus_steps(l);
+            (longest * 100 > limit * LIMIT_PCT).then(|| (builtin_level(l).name, longest, limit))
+        })
+        .collect()
+}
+
+/// Insane takes a life when the time bonus runs out (#35): the strong bot must finish every level
+/// well before that. A winning life may take at most this share of the bonus time.
+const LIMIT_PCT: u32 = 60;
+
+/// Prints how much of the bonus time the longest winning life of the strong bot on Insane used.
+fn report_bonus_time(r: &[Vec<Vec<Outcome>>]) {
+    let d = Difficulty::ALL.len() - 1;
+    println!(
+        "
+strong bot on Insane: longest winning life vs. the bonus time"
+    );
+    for (l, runs) in r[d].iter().enumerate() {
+        if runs.is_empty() {
+            continue;
+        }
+        let longest = runs
+            .iter()
+            .filter(|o| o.completed)
+            .map(|o| o.life_steps)
+            .max();
+        let limit = bonus_steps(l);
+        match longest {
+            Some(n) => println!(
+                "  {:<14} {:>5.1} s of {:>5.1} s ({} %)",
+                builtin_level(l).name,
+                n as f32 / STEP_HZ as f32,
+                limit as f32 / STEP_HZ as f32,
+                n * 100 / limit
+            ),
+            None => println!("  {:<14} no win", builtin_level(l).name),
+        }
+    }
+}
+
+/// Prints the tables of both bots for some levels only, to try a change quickly:
+/// `BALANCE_LEVELS=2,4,6 BALANCE_SEEDS=8 cargo test --release balance_explore -- --ignored --nocapture`
+/// (levels counted from 1; all of them when unset). Asserts nothing.
+#[test]
+#[ignore = "slow; run with --release"]
+fn balance_explore() {
+    let levels: Vec<usize> = match std::env::var("BALANCE_LEVELS") {
+        Ok(v) => v
+            .split(',')
+            .filter_map(|x| x.trim().parse::<usize>().ok())
+            .filter(|&l| (1..=level_count()).contains(&l))
+            .map(|l| l - 1)
+            .collect(),
+        Err(_) => (0..level_count()).collect(),
+    };
+    let n = seeds();
+    for skill in [WEAK, STRONG] {
+        let r = run_levels(skill, n, &levels);
+        report(skill, &r);
+        if skill.name == STRONG.name {
+            report_bonus_time(&r);
+        }
+    }
 }

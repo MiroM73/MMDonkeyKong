@@ -91,9 +91,8 @@ const FIRST_BARREL_STEPS: u32 = STEP_HZ;
 pub const SCORE_JUMP: u32 = 100;
 pub const SCORE_SMASH: u32 = 300;
 pub const SCORE_RIVET: u32 = 100;
-/// Score of a fireball smashed with the hammer, and how many fireballs the ape keeps alive.
+/// Score of a fireball smashed with the hammer.
 pub const SCORE_FIRE: u32 = 500;
-const MAX_FIREBALLS: usize = 4;
 /// How close (horizontally) the hero must walk over a rivet to remove it.
 const RIVET_REACH: f32 = 4.0;
 /// Half size of a hammer item and the reach of the swung hammer in front of the player.
@@ -375,7 +374,7 @@ pub fn step(state: &mut GameState, input: &Input) -> Vec<Event> {
     if state.barrel_in == 0 {
         let (ax, ay) = state.level.ape;
         if state.level.kind == LevelKind::Rivets {
-            if state.fireballs.len() < MAX_FIREBALLS {
+            if state.fireballs.len() < state.params.max_fireballs {
                 state.fireballs.push(Fireball::new(ax + 16.0, ay, 1));
             }
         } else {
@@ -1116,12 +1115,14 @@ mod tests {
     }
 
     #[test]
-    fn the_ape_sends_at_most_four_fireballs() {
-        let mut s = GameState::new(builtin_level(3), 1);
-        s.player.mode = Mode::Dead { left: u32::MAX };
-        idle(&mut s, 3000);
-        assert!(s.barrels.is_empty());
-        assert!(!s.fireballs.is_empty() && s.fireballs.len() <= 4);
+    fn the_ape_keeps_at_most_the_difficultys_fireballs_alive() {
+        for d in Difficulty::ALL {
+            let mut s = GameState::start(builtin_level(3), 1, d, None, 0);
+            s.player.mode = Mode::Dead { left: u32::MAX };
+            idle(&mut s, 3000);
+            assert!(s.barrels.is_empty());
+            assert_eq!(s.fireballs.len(), d.params().max_fireballs, "{d:?}");
+        }
     }
 
     /// A smoke test of the balance pass: every level on every difficulty runs for a while with

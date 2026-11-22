@@ -7,7 +7,7 @@ type: conveyors
 bonus: 6000
 bonus_drop: 100
 bonus_every: 2
-barrel_every: 3.5
+barrel_every: 2.2
 extra_life: 10000
 
 start: 20 248

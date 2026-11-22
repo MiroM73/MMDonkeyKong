@@ -7,8 +7,8 @@ type: rivets
 bonus: 8000
 bonus_drop: 100
 bonus_every: 2
-# A new fireball every `barrel_every` seconds (at most four at a time).
-barrel_every: 6
+# A new fireball every `barrel_every` seconds (at most `max_fireballs` of the difficulty at a time).
+barrel_every: 7
 extra_life: 15000
 
 start: 20 248

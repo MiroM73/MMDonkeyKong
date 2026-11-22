@@ -5,7 +5,7 @@ type: rivets
 bonus: 12000
 bonus_drop: 100
 bonus_every: 2
-barrel_every: 4.0
+barrel_every: 4.5
 extra_life: 20000
 start: 20 248
 ape: 20 60

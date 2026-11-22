@@ -34,6 +34,10 @@ pub struct Params {
     pub hammer_delta: i32,
     /// Every point (jumps, smashes, the time bonus) in percent; the extra-life score scales too.
     pub score_pct: u32,
+    /// Fireballs the ape keeps alive at most (the rivets levels).
+    pub max_fireballs: usize,
+    /// A walking fireball may turn towards the hero every this many steps (fewer = hunts harder).
+    pub fire_turn_every: u64,
     /// The player loses a life when the time bonus reaches 0 (Insane only).
     pub bonus_timeout: bool,
 }
@@ -67,6 +71,13 @@ impl Difficulty {
                 Difficulty::Hard => (3, 1.20, 80, (2, 5), 0, 150),
                 Difficulty::Insane => (2, 1.45, 65, (1, 2), -1, 200),
             };
+        let (max_fireballs, fire_turn_every) = match self {
+            Difficulty::Relaxed => (2, 90),
+            Difficulty::Easy => (3, 60),
+            Difficulty::Normal => (4, 45),
+            Difficulty::Hard => (4, 36),
+            Difficulty::Insane => (4, 30),
+        };
         Params {
             lives,
             obstacle_speed,
@@ -74,6 +85,8 @@ impl Difficulty {
             ladder_chance,
             hammer_delta,
             score_pct,
+            max_fireballs,
+            fire_turn_every,
             bonus_timeout: self == Difficulty::Insane,
         }
     }
@@ -109,7 +122,10 @@ mod tests {
             assert!(w[0].ladder_probability() < w[1].ladder_probability());
             assert!(w[0].hammer_delta >= w[1].hammer_delta);
             assert!(w[0].score_pct < w[1].score_pct);
+            assert!(w[0].max_fireballs <= w[1].max_fireballs);
+            assert!(w[0].fire_turn_every > w[1].fire_turn_every);
         }
+        assert!(p[0].max_fireballs < p[4].max_fireballs);
         assert!(p[0].lives > p[4].lives);
         // Only the hardest step has the time limit.
         assert!(p[..4].iter().all(|p| !p.bonus_timeout));
@@ -127,6 +143,8 @@ mod tests {
             assert!(n >= 1 && n < d);
             assert!((-1..=3).contains(&p.hammer_delta));
             assert!((25..=300).contains(&p.score_pct));
+            assert!((1..=8).contains(&p.max_fireballs));
+            assert!((10..=200).contains(&p.fire_turn_every));
         }
     }
 
@@ -141,6 +159,7 @@ mod tests {
         assert_eq!(p.ladder_chance, (1, 3));
         assert_eq!(p.hammer_delta, 0);
         assert_eq!(p.score_pct, 100);
+        assert_eq!((p.max_fireballs, p.fire_turn_every), (4, 45));
         assert_eq!(p.scaled(300), 300);
     }
 

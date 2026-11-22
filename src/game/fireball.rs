@@ -13,8 +13,6 @@ pub const FIRE_CLIMB_SPEED: f32 = 0.5;
 /// Size of the hit box: `x` is the middle, `y` the bottom.
 const HALF_W: f32 = 3.5;
 const HEIGHT: f32 = 9.0;
-/// Every this many steps a walking fireball may turn towards the player.
-const TURN_EVERY: u64 = 45;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FireMode {
@@ -105,7 +103,7 @@ impl Fireball {
     ) {
         let mut dir = dir;
         // Now and then turn towards the player (two out of three times), else keep going.
-        if tick.is_multiple_of(TURN_EVERY) && rng.below(3) > 0 {
+        if tick.is_multiple_of(p.fire_turn_every) && rng.below(3) > 0 {
             dir = if target.0 >= self.x { 1 } else { -1 };
         }
         let old_x = self.x;

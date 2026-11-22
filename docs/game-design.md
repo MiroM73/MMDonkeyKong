@@ -84,6 +84,8 @@ Chosen in the new-game screen and changeable in the settings between levels:
 | 4 | Hard | 3 | 1.20× | 0.8× | higher | normal | 1.5× |
 | 5 | Insane | 2 | 1.45× | 0.65× | high | −1 | 2.0× |
 
+Rivets levels also scale the fireballs: at most 2 / 3 / 4 / 4 / 4 alive and a turn towards the hero every 90 / 60 / 45 / 36 / 30 steps (Relaxed … Insane).
+
 The numbers are a first proposal (a `Difficulty` struct in code, one table, tuned by playing). Hammer count: the level file lists its own `hammer` lines and optional `bonus_hammer` lines; "extra" = +2, "+1" = +1 of those (as many as the level has), "−1" removes one hammer (never the last). The extra-life score and the time bonus scale with the score multiplier.
 **Time limit (Insane only):** when the time bonus reaches 0 the player loses a life (as in the original)
 and the bonus starts again from its full value; the bonus blinks red during its last ~10 seconds.
