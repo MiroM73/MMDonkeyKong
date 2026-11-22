@@ -72,6 +72,9 @@ levels.title = Vyber level
 levels.back = Späť
 levels.best = Najlepšie {score}
 levels.no_score = Zatiaľ bez skóre
+levels.legend = Vyplnené kruhy = obtiažnosti, na ktorých je level dokončený:
+levels.medal_done = {name}: dokončené
+levels.medal_todo = {name}: zatiaľ nedokončené
 title.scores = Najlepšie skóre
 scores.title = Najlepšie skóre
 entry.title = Nové najlepšie skóre!

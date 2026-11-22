@@ -151,6 +151,8 @@ What was done when (one line per issue / release) and the open ideas of the owne
   (Trunk, relative URLs, stamped service worker) and attaches it to the draft release next to the exe;
   README sections Play online / Play offline / Build on Linux / macOS / Build the web version.
   The release itself (version, notes) is run by the owner.
+- 2026-11-22: Level select: a legend under the grid explains the coloured circles (one per difficulty, filled =
+  completed on it) and hovering a circle names the difficulty and whether it is completed.
 
 ## Open ideas
 

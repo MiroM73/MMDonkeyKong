@@ -168,6 +168,8 @@ impl App {
                     });
                 }
             });
+        child.add_space(6.0);
+        draw_legend(&mut child);
         child.add_space(8.0);
         let size = egui::vec2(ITEM_W.min(rect.width() - 16.0), ITEM_H);
         if menu_item(&mut child, &t!("levels.back"), size, false, true).clicked() {
@@ -256,10 +258,41 @@ impl App {
                 } else {
                     p.circle_stroke(c, 5.5, egui::Stroke::new(1.5, TEXT_DIM));
                 }
+                let hit = egui::Rect::from_center_size(c, egui::vec2(18.0, 20.0));
+                let tip = ui.interact(hit, resp.id.with(("medal", i)), egui::Sense::hover());
+                let name = t!(Difficulty::ALL[i].key());
+                tip.on_hover_text(if *done {
+                    t!("levels.medal_done", name = name)
+                } else {
+                    t!("levels.medal_todo", name = name)
+                });
             }
         }
         resp
     }
+}
+
+/// The key under the grid: what the coloured circles of a tile mean.
+fn draw_legend(ui: &mut egui::Ui) {
+    ui.label(
+        egui::RichText::new(t!("levels.legend"))
+            .size(13.0)
+            .color(TEXT_DIM),
+    );
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing.x = 6.0;
+        // Centre the row: the wrapped layout starts at the left edge.
+        let names: Vec<String> = Difficulty::ALL.iter().map(|d| t!(d.key())).collect();
+        let text_w: f32 = names.iter().map(|n| n.chars().count() as f32 * 7.5).sum();
+        let total = text_w + names.len() as f32 * 30.0;
+        ui.add_space(((ui.available_width() - total) / 2.0).max(0.0));
+        for (i, name) in names.iter().enumerate() {
+            let (r, _) = ui.allocate_exact_size(egui::vec2(12.0, 14.0), egui::Sense::hover());
+            ui.painter().circle_filled(r.center(), 6.0, MEDALS[i]);
+            ui.label(egui::RichText::new(name).size(13.0).color(TEXT_DIM));
+            ui.add_space(8.0);
+        }
+    });
 }
 
 /// A padlock centred at `c`.

@@ -72,6 +72,9 @@ levels.title = Choose a level
 levels.back = Back
 levels.best = Best {score}
 levels.no_score = No score yet
+levels.legend = Filled circles = difficulties this level was completed on:
+levels.medal_done = {name}: completed
+levels.medal_todo = {name}: not completed yet
 title.scores = High scores
 scores.title = High scores
 entry.title = New high score!

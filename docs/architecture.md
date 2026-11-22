@@ -253,7 +253,7 @@ first). A grid of tiles (132 x 116 points, 12 apart; `grid_cols` fits as many pe
 allows, a vertical `ScrollArea` holds the rows, the cursor tile is scrolled into view). `tile_info`
 (pure, tested) gives each tile its `TileState` - `Locked` (not `SaveData::is_playable`), `Open`,
 `Done` (completed on any difficulty) - the best score on the **selected** difficulty and one medal per
-difficulty (filled when that difficulty has a best score for the level). Locked tiles are greyed with
+difficulty (filled when that difficulty has a best score for the level). A legend (`draw_legend`) under the grid names the colours and every circle has a hover tooltip. Locked tiles are greyed with
 a padlock and cannot be selected; the cursor (`MenuInput` + `move_cursor` with the column count),
 a click / tap or Enter / A starts the level with the full lives and no score (`begin_level`) - a
 replay never lowers the progress (`complete_level` only moves Continue forward). Esc / Start / the

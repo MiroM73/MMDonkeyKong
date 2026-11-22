@@ -72,6 +72,9 @@ levels.title = Level wählen
 levels.back = Zurück
 levels.best = Beste {score}
 levels.no_score = Noch keine Punkte
+levels.legend = Gefüllte Kreise = Schwierigkeiten, auf denen der Level geschafft wurde:
+levels.medal_done = {name}: geschafft
+levels.medal_todo = {name}: noch nicht geschafft
 title.scores = Bestenliste
 scores.title = Bestenliste
 entry.title = Neuer Highscore!
