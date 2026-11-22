@@ -18,6 +18,9 @@ mod rng;
 mod timestep;
 mod validate;
 
+#[cfg(test)]
+mod balance;
+
 pub use barrel::{Barrel, BarrelMode, SPRING_VX};
 pub use difficulty::{Difficulty, Params};
 pub use fireball::Fireball;

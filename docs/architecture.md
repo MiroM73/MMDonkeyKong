@@ -169,7 +169,26 @@ last ones removed (Insane -1, never the last one); `add_score` scales jump / sma
 score that already earned the extra life does not earn it again. Geometry is never touched. Normal
 is bit-identical to the pre-#10 game (tests). The difficulty of the next level that starts is
 `Config::difficulty` (menu Game -> Difficulty); the running level keeps its numbers.
-The numbers are a first proposal, not tuned by playing yet.
+The numbers are a first proposal, not tuned by playing yet; the balance bots (#34) measure them.
+
+### Balance bots (`balance.rs`, test only, #34)
+
+Two bots play every built-in level on every difficulty through the real `step` and `Input`;
+`cargo test --release balance -- --ignored --nocapture` (`BALANCE_SEEDS=8` for more runs, default 4;
+about 3 minutes for 8 in release on two cores). Every `SLOT` (4) steps a bot tries each of its 9 moves on a copy of the
+game: the queued moves of its reaction time, the move, then a second move held for 4–32 steps or the
+whole look-ahead and then standing still; a jump still in the air at the end is played to its
+landing. The copy gets a fresh `Rng` seed, so the bot cannot know the barrels' ladder choices. A
+plan's value is minus the discounted mean of the distance to the goal along the rollout (a death or
+a win ends it); the distance comes from `Nav`, a Dijkstra graph over the fixed girders (both ends of
+every intact ladder, walk / jump edges by the validator's rules, lift stops at a jump's take-off
+point, the goal or every rivet; on the rivets level 1000 per rivet left plus the way to the nearest).
+`WEAK`: reaction 4 slots (0.27 s), 15 % chance per slot of reacting one more slot late, 24-step
+look-ahead, one guess. `STRONG`: instant, 40 steps, worst of two guesses. A run is one level from the
+full lives of the difficulty to the win, the game over or 3 minutes. The tests:
+`balance_bots_finish_every_empty_level` (no hazards: both bots must win every level, so a stuck bot
+is a bot bug, not a balance result) and `balance_difficulty_steps` (prints the tables; fails when the
+weak bot wins no run of a level on Relaxed or the strong bot none on Insane).
 
 ### Barrels, hammer, scoring (`barrel.rs`, `mod.rs`)
 

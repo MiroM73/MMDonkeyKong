@@ -98,6 +98,12 @@ What was done when (one line per issue / release) and the open ideas of the owne
   theme, language, difficulty, controls; About shows credits; new keys in all four languages.
 - **#33 Lift landing** – a falling hero no longer slips through a rising lift (the landing test now has
   a small slack); the fall distance rule (32 px, as in the original) is unchanged.
+- **#34 Balance bots** – `src/game/balance.rs` (tests only, ignored, `--release`): a weak and a strong
+  bot play every level on every difficulty and print won runs / deaths per run. First result (8 runs,
+  table unchanged since #10): the weak bot wins every level on Relaxed (Rivets 7/8), the strong bot wins
+  every level on Insane with 7/8 or 8/8 runs and under one death per run. So both goals are met, but
+  Insane is too lenient for a very good player (→ #35, time limit). Conveyors levels are almost
+  harmless on every step, Rivets is a difficulty spike, and Normal and Hard are hard to tell apart (→ #36).
 
 ## Open ideas
 
