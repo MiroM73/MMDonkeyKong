@@ -125,7 +125,9 @@ the geometry without the lifts (the static background texture); the view draws `
 `GameState::lifts`. The validator joins every girder whose end lies next to a lift's ride (within
 a jump) with all the others near it, both ways. On the `lifts` type the ape drops **springs**
 instead of barrels: `Barrel::spring` / `BarrelMode::Bouncing` flies right at `SPRING_VX` and
-bounces up with `SPRING_BOUNCE_VY` on every landing; springs use the barrel code for hits, hammer
+bounces up with `SPRING_BOUNCE_VY` on every landing (below Normal the whole arc runs in slow motion:
+`spring_gravity` / `spring_bounce_vy` scale with `obstacle_speed`, so the time the hero has to run under a
+spring grows on the easy steps, #40; test `running_under_a_spring_is_easier_on_the_easier_steps`); springs use the barrel code for hits, hammer
 smashes and jump-over points. Level 3 (`levels/03-lifts.txt`): start platform, rising lift, upper
 floor with a ladder to the ape, falling lift to the right-hand floor. Level 7 (`levels/07-lifts-2.txt`,
 written by hand, #29) is a two-stage climb: a lift to a middle floor, a second lift to a ledge on the

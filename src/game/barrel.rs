@@ -15,6 +15,20 @@ const MAX_FALL_SPEED: f32 = 5.0;
 /// Upwards speed of a spring after a landing, and its horizontal speed (at obstacle speed 1.0).
 pub const SPRING_BOUNCE_VY: f32 = -2.2;
 pub const SPRING_VX: f32 = 0.7;
+/// The whole motion of a spring (both axes, so also the rhythm of its hops) runs `obstacle_speed`
+/// times as fast: gravity scales with the square, so the arc keeps its shape and the spring simply
+/// moves in slow motion on the easy steps. Scaling only `vx` made the hops (the time the hero has
+/// to run under a spring) the same on every step, i.e. relatively shortest on Relaxed (#40).
+/// Above 1.0 the hops stay as they are (a faster spring is meant to be harder, and the window to
+/// run under it is already open for as long as on Normal in pixels).
+pub fn spring_gravity(speed: f32) -> f32 {
+    GRAVITY * speed.min(1.0).powi(2)
+}
+
+/// Upwards speed of a spring after a landing at the obstacle speed `speed`.
+pub fn spring_bounce_vy(speed: f32) -> f32 {
+    SPRING_BOUNCE_VY * speed.min(1.0)
+}
 /// Barrel size: a square of `2 * RADIUS`, `x` / `y` are the middle of the bottom edge.
 pub const RADIUS: f32 = 4.0;
 
@@ -112,7 +126,7 @@ impl Barrel {
                 }
             }
             BarrelMode::Bouncing { vx, vy } => {
-                let vy = (vy + GRAVITY).min(MAX_FALL_SPEED);
+                let vy = (vy + spring_gravity(p.obstacle_speed)).min(MAX_FALL_SPEED);
                 let (new_x, new_y) = (self.x + vx, self.y + vy);
                 let hit = if vy > 0.0 {
                     geo.landing(new_x, self.y, new_y)
@@ -125,7 +139,7 @@ impl Barrel {
                         self.y = s;
                         self.mode = BarrelMode::Bouncing {
                             vx,
-                            vy: SPRING_BOUNCE_VY,
+                            vy: spring_bounce_vy(p.obstacle_speed),
                         };
                     }
                     None => {
@@ -239,6 +253,41 @@ mod tests {
             b.step(&geo, &mut rng, &Difficulty::Normal.params());
         }
         assert!(b.is_gone());
+    }
+
+    /// Seconds by which the player may mistime running under a spring (the spring must stay at
+    /// least the hit box high while the two boxes cross in x), from the spring constants.
+    fn under_run_slack(speed: f32) -> f32 {
+        let (mut vy, mut h) = (spring_bounce_vy(speed), 0.0_f32);
+        let (mut safe, mut period) = (0, 0);
+        loop {
+            vy += spring_gravity(speed);
+            h -= vy;
+            period += 1;
+            if h <= 0.0 {
+                break;
+            }
+            if h >= crate::game::player::HIT_HEIGHT {
+                safe += 1;
+            }
+        }
+        assert!(period > 0);
+        let cross = (crate::game::player::HIT_HALF_W + RADIUS) * 2.0
+            / (crate::game::player::WALK_SPEED + SPRING_VX * speed);
+        (safe as f32 - cross) / 60.0
+    }
+
+    #[test]
+    fn running_under_a_spring_is_easier_on_the_easier_steps() {
+        let slack: Vec<f32> = Difficulty::ALL
+            .iter()
+            .map(|d| under_run_slack(d.params().obstacle_speed))
+            .collect();
+        assert!(slack[0] > slack[1] && slack[1] > slack[2], "{slack:?}");
+        assert!(slack[0] >= 0.15, "Relaxed {slack:?}");
+        assert!(slack[1] >= 0.10, "Easy {slack:?}");
+        // The steps above Normal are not made harder to run under than Normal.
+        assert!(slack[3..].iter().all(|s| *s >= slack[2]), "{slack:?}");
     }
 
     #[test]

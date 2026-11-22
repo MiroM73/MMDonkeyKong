@@ -114,6 +114,10 @@ What was done when (one line per issue / release) and the open ideas of the owne
   browser) into every game's seed, so the first game differs on every launch.
 - **#30 Belt arrows** – `BeltState::phase` accumulates the real belt travel; arrows follow the difficulty speed
   and do not jump on reversal.
+- **#40 Springs on the easy steps** – a spring's whole arc (gravity and bounce speed, not only `vx`) runs in slow
+  motion below Normal (`spring_gravity`, `spring_bounce_vy`). The time the hero may mistime running under a spring
+  was 0.05 s on Relaxed (the hardest step) and is now 0.22 s (Easy 0.13 s, Normal 0.08 s as before; Hard / Insane
+  unchanged). Reported by the owner on level 7.
 - **#37 Insane vs. the bonus time** – `balance_difficulty_steps` now records the longest winning life of the strong
   bot on Insane (`Outcome::life_steps`, steps since the last death) and asserts it stays under 60 % of the level's
   bonus time (`bonus_steps`); it prints the share per level. Measured (8 seeds): 1–13 % (Rivets II 32.5 s of 240 s
